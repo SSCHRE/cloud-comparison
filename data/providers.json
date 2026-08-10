@@ -1,0 +1,384 @@
+{
+  "meta": {
+    "title": "Cloud Storage Comparison",
+    "tagline": "Filter and compare cloud storage on the features that actually matter.",
+    "updated": "2026-08-10",
+    "disclaimer": "Feature support can change. Notes reflect publicly documented behavior as of the update date. Partial means limited, paid, local-only, or folder-scoped support.",
+    "maxCompare": 8
+  },
+  "features": [
+    {
+      "id": "sync_app",
+      "label": "Sync app",
+      "short": "Sync",
+      "description": "Native desktop client that keeps folders in sync across devices."
+    },
+    {
+      "id": "lifetime_deals",
+      "label": "Lifetime deals",
+      "short": "Lifetime",
+      "description": "One-time payment plans that grant long-term storage access."
+    },
+    {
+      "id": "camera_backup",
+      "label": "Camera backup",
+      "short": "Camera",
+      "description": "Automatic photo and video upload from the mobile app."
+    },
+    {
+      "id": "rclone",
+      "label": "rclone",
+      "short": "rclone",
+      "description": "Works with rclone for mounts, sync scripts, and NAS workflows."
+    },
+    {
+      "id": "webdav",
+      "label": "WebDAV",
+      "short": "WebDAV",
+      "description": "Can be accessed over WebDAV natively or via a local bridge."
+    },
+    {
+      "id": "e2ee",
+      "label": "E2EE",
+      "short": "E2EE",
+      "description": "End-to-end / zero-knowledge encryption so the provider cannot read your files."
+    },
+    {
+      "id": "mobile_apps",
+      "label": "Mobile apps",
+      "short": "Mobile",
+      "description": "Official iOS and Android apps."
+    },
+    {
+      "id": "file_versioning",
+      "label": "Versioning",
+      "short": "Versions",
+      "description": "Restore earlier versions of files after changes or mistakes."
+    }
+  ],
+  "providers": [
+    {
+      "id": "drime",
+      "name": "Drime",
+      "url": "https://drime.cloud",
+      "hq": "France",
+      "region": "EU",
+      "free_storage": "20 GB",
+      "summary": "EU-hosted storage with collaboration tools and an encrypted Vault for sensitive files.",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Desktop sync + mobile apps"
+        },
+        "lifetime_deals": {
+          "status": "yes",
+          "note": "Sold directly and via deal sites"
+        },
+        "camera_backup": {
+          "status": "partial",
+          "note": "Automatic backup; gallery-focused"
+        },
+        "rclone": {
+          "status": "yes",
+          "note": "Documented rclone remote"
+        },
+        "webdav": {
+          "status": "no",
+          "note": "No native hosted WebDAV"
+        },
+        "e2ee": {
+          "status": "partial",
+          "note": "E2EE for Vault only"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android"
+        },
+        "file_versioning": {
+          "status": "yes",
+          "note": "Plan-based history"
+        }
+      },
+      "bandwidth": "Unlimited",
+      "file_limit": "None",
+      "icon": "icons/drime.png"
+    },
+    {
+      "id": "filen",
+      "name": "Filen",
+      "url": "https://filen.io",
+      "hq": "Germany",
+      "region": "EU",
+      "free_storage": "10 GB",
+      "summary": "Zero-knowledge cloud with flexible sync modes, CLI tools, and official rclone support.",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Multiple sync modes"
+        },
+        "lifetime_deals": {
+          "status": "partial",
+          "note": "Starter LTD; larger plans seasonal"
+        },
+        "camera_backup": {
+          "status": "yes",
+          "note": "Automatic camera upload"
+        },
+        "rclone": {
+          "status": "yes",
+          "note": "Official rclone backend"
+        },
+        "webdav": {
+          "status": "partial",
+          "note": "Local WebDAV via desktop/CLI"
+        },
+        "e2ee": {
+          "status": "yes",
+          "note": "Full zero-knowledge"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android"
+        },
+        "file_versioning": {
+          "status": "yes",
+          "note": "Included"
+        }
+      },
+      "bandwidth": "Unlimited",
+      "file_limit": "None",
+      "icon": "https://filen.io/favicon.ico"
+    },
+    {
+      "id": "pcloud",
+      "name": "pCloud",
+      "url": "https://www.pcloud.com",
+      "hq": "Switzerland",
+      "region": "CH",
+      "free_storage": "10 GB",
+      "summary": "Polished sync product known for lifetime plans; Crypto E2EE is a paid add-on.",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Desktop drive + sync"
+        },
+        "lifetime_deals": {
+          "status": "yes",
+          "note": "Up to 10 TB lifetime"
+        },
+        "camera_backup": {
+          "status": "yes",
+          "note": "Automatic gallery backup"
+        },
+        "rclone": {
+          "status": "yes",
+          "note": "Native rclone backend"
+        },
+        "webdav": {
+          "status": "yes",
+          "note": "Native WebDAV"
+        },
+        "e2ee": {
+          "status": "partial",
+          "note": "Crypto folder is paid add-on"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android"
+        },
+        "file_versioning": {
+          "status": "yes",
+          "note": "Rewind by plan"
+        }
+      },
+      "bandwidth": "Plan traffic cap",
+      "file_limit": "None",
+      "icon": "icons/pcloud.png"
+    },
+    {
+      "id": "proton-drive",
+      "name": "Proton Drive",
+      "url": "https://proton.me/drive",
+      "hq": "Switzerland",
+      "region": "CH",
+      "free_storage": "5 GB",
+      "summary": "Privacy-first drive from Proton with E2EE by default and a growing sync client.",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Desktop sync apps"
+        },
+        "lifetime_deals": {
+          "status": "no",
+          "note": "Subscription / bundles"
+        },
+        "camera_backup": {
+          "status": "yes",
+          "note": "Mobile photo backup"
+        },
+        "rclone": {
+          "status": "no",
+          "note": "No official rclone remote"
+        },
+        "webdav": {
+          "status": "no",
+          "note": "No WebDAV"
+        },
+        "e2ee": {
+          "status": "yes",
+          "note": "E2EE by default"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android"
+        },
+        "file_versioning": {
+          "status": "yes",
+          "note": "Version history"
+        }
+      },
+      "bandwidth": "Unlimited",
+      "file_limit": "None",
+      "icon": "icons/proton-drive.png"
+    },
+    {
+      "id": "jottacloud",
+      "name": "Jottacloud",
+      "url": "https://jottacloud.com",
+      "hq": "Norway",
+      "region": "EU",
+      "free_storage": "5 GB",
+      "summary": "Norwegian backup/sync cloud with unlimited personal plans historically popular in EU.",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Desktop sync + backup"
+        },
+        "lifetime_deals": {
+          "status": "no",
+          "note": "Subscriptions"
+        },
+        "camera_backup": {
+          "status": "yes",
+          "note": "Mobile camera backup"
+        },
+        "rclone": {
+          "status": "yes",
+          "note": "Native rclone backend"
+        },
+        "webdav": {
+          "status": "no",
+          "note": "No WebDAV"
+        },
+        "e2ee": {
+          "status": "partial",
+          "note": "Optional personal encryption"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android"
+        },
+        "file_versioning": {
+          "status": "yes",
+          "note": "Trash + revisions"
+        }
+      },
+      "bandwidth": "Unlimited",
+      "file_limit": "None",
+      "icon": "icons/jottacloud.png"
+    },
+    {
+      "id": "backblaze-b2",
+      "name": "Backblaze B2",
+      "url": "https://www.backblaze.com/b2",
+      "hq": "United States",
+      "region": "US",
+      "free_storage": "10 GB",
+      "summary": "S3-compatible object storage popular for rclone backups and archives.",
+      "features": {
+        "sync_app": {
+          "status": "partial",
+          "note": "Via rclone / third-party tools"
+        },
+        "lifetime_deals": {
+          "status": "no",
+          "note": "Pay as you go"
+        },
+        "camera_backup": {
+          "status": "no",
+          "note": "Not a consumer gallery app"
+        },
+        "rclone": {
+          "status": "yes",
+          "note": "Excellent rclone support"
+        },
+        "webdav": {
+          "status": "no",
+          "note": "S3 API instead"
+        },
+        "e2ee": {
+          "status": "partial",
+          "note": "Encrypt client-side yourself"
+        },
+        "mobile_apps": {
+          "status": "no",
+          "note": "No first-party files app"
+        },
+        "file_versioning": {
+          "status": "yes",
+          "note": "Object versions"
+        }
+      },
+      "bandwidth": "Egress priced",
+      "file_limit": "None",
+      "icon": "icons/backblaze-b2.png"
+    },
+    {
+      "id": "terabox",
+      "name": "TeraBox",
+      "url": "https://www.terabox.com",
+      "hq": "Singapore / global",
+      "region": "Other",
+      "free_storage": "1 TB",
+      "summary": "Huge free tier, but free downloads are famously capped around 200 KB/s without Premium.",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Desktop and mobile clients"
+        },
+        "lifetime_deals": {
+          "status": "no",
+          "note": "Subscriptions / Premium"
+        },
+        "camera_backup": {
+          "status": "yes",
+          "note": "Mobile auto backup"
+        },
+        "rclone": {
+          "status": "no",
+          "note": "No official rclone remote"
+        },
+        "webdav": {
+          "status": "no",
+          "note": "No WebDAV"
+        },
+        "e2ee": {
+          "status": "no",
+          "note": "Not zero-knowledge"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android"
+        },
+        "file_versioning": {
+          "status": "partial",
+          "note": "Limited / recycle bin style recovery"
+        }
+      },
+      "bandwidth": "Fair use / plan",
+      "file_limit": "None practical",
+      "icon": "icons/terabox.png",
+      "speed_warning": "Free downloads capped around ~200 KB/s without Premium."
+    }
+  ]
+}

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>Cloud Storage Comparison</title>
+    <meta
+      name="description"
+      content="Filter and compare up to 50 cloud storage providers on sync, lifetime deals, camera backup, rclone, WebDAV, and E2EE."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div class="bg" aria-hidden="true">
+      <div class="bg-grid"></div>
+      <div class="bg-glow bg-glow-a"></div>
+      <div class="bg-glow bg-glow-b"></div>
+    </div>
+
+    <div class="app">
+      <header class="topbar">
+        <div class="brand-block">
+          <p class="brand">Cloud Storage Comparison</p>
+          <p id="tagline" class="tagline">
+            Filter and compare cloud storage on the features that actually matter.
+          </p>
+        </div>
+
+        <div class="topbar-controls">
+          <label class="search-wrap">
+            <span class="sr-only">Search</span>
+            <input
+              id="search"
+              type="search"
+              placeholder="Search providers…"
+              autocomplete="off"
+            />
+          </label>
+
+          <label class="control">
+            <span>Sort</span>
+            <select id="sort">
+              <option value="name-asc">Name A–Z</option>
+              <option value="name-desc">Name Z–A</option>
+              <option value="score-desc">Best match</option>
+              <option value="region">Region</option>
+              <option value="free-desc">Free storage</option>
+            </select>
+          </label>
+
+          <div class="segmented" role="group" aria-label="View mode">
+            <button type="button" class="seg is-active" id="view-browse">Browse</button>
+            <button type="button" class="seg" id="view-compare">
+              Compare <span class="count" id="shortlist-count">0</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <section class="filter-rail" aria-label="Filters">
+        <div class="rail-head">
+          <div>
+            <h2>Filters</h2>
+            <p id="result-count" class="result-count" aria-live="polite">Loading…</p>
+          </div>
+          <div class="rail-actions">
+            <div class="legend" aria-label="Status legend">
+              <span><i class="dot yes"></i> Yes</span>
+              <span><i class="dot partial"></i> Partial</span>
+              <span><i class="dot no"></i> No</span>
+            </div>
+            <button type="button" class="linkish" id="clear-filters">Reset</button>
+          </div>
+        </div>
+
+        <div class="rail-body">
+          <fieldset class="filter-group">
+            <legend>Must have</legend>
+            <div id="feature-filters" class="toggle-row"></div>
+          </fieldset>
+
+          <fieldset class="filter-group">
+            <legend>Region</legend>
+            <p class="field-hint">Self-hosted is hidden until you select it.</p>
+            <div id="region-filters" class="toggle-row"></div>
+          </fieldset>
+
+          <div class="filter-group options">
+            <label class="toggle">
+              <input type="checkbox" id="strict-yes" />
+              <span>Strict Yes only</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="free-tier-only" />
+              <span>Has free tier</span>
+            </label>
+            <p class="hint">
+              Shortlist up to <span id="max-compare">8</span>, then open Compare.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div id="shortlist-bar" class="shortlist-bar" hidden>
+        <div class="shortlist-chips" id="shortlist-chips"></div>
+        <div class="shortlist-actions">
+          <button type="button" class="linkish" id="clear-shortlist">Clear</button>
+          <button type="button" class="btn-primary" id="open-compare">Compare selected</button>
+        </div>
+      </div>
+
+      <main class="stage">
+        <section id="browse-view" class="panel" aria-labelledby="browse-heading">
+          <h2 id="browse-heading" class="sr-only">Browse providers</h2>
+          <div class="table-shell">
+            <table id="browse-table">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <p id="empty-state" class="empty" hidden>No providers match these filters.</p>
+        </section>
+
+        <section id="compare-view" class="panel" hidden aria-labelledby="compare-heading">
+          <h2 id="compare-heading" class="sr-only">Compare shortlist</h2>
+          <div id="compare-empty" class="empty">
+            <p>
+              Shortlist 2–<span class="max-compare-label">8</span> providers from Browse, then
+              compare them side by side.
+            </p>
+          </div>
+          <div class="table-shell" id="compare-wrap" hidden>
+            <table id="compare-table">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <p id="updated"></p>
+        <p id="disclaimer"></p>
+      </footer>
+    </div>
+
+    <dialog id="drawer" class="drawer">
+      <form method="dialog" class="drawer-panel">
+        <button type="submit" class="drawer-close" aria-label="Close">Close</button>
+        <div id="drawer-content"></div>
+      </form>
+    </dialog>
+
+    <script src="js/app.js" type="module"></script>
+  </body>
+</html>
