@@ -330,7 +330,7 @@
           "note": "S3 API instead"
         },
         "e2ee": {
-          "status": "partial",
+          "status": "no",
           "note": "Encrypt client-side yourself"
         },
         "mobile_apps": {
