@@ -60,6 +60,8 @@ const state = {
   regions: new Set(),
   strictYes: false,
   freeTierOnly: false,
+  hideNotRecommended: false,
+  showPricing: false,
   sort: "name-asc",
   view: "browse",
   shortlist: new Set(),
@@ -76,6 +78,49 @@ function escapeHtml(value) {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
+}
+
+/** Plain text for tips/search: strip note markup. */
+function stripRichNote(value) {
+  return String(value ?? "")
+    .replace(/<a\s[^>]*>([\s\S]*?)<\/a>/gi, "$1")
+    .replace(/\[([^\]]+)\]\(https?:\/\/[^)\s]+\)/g, "$1")
+    .replace(/<\/?(?:b|strong|em|i|br)\s*\/?>/gi, " ")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function safeNoteLink(url, labelHtml) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    return `<a href="${escapeHtml(parsed.href)}" target="_blank" rel="noopener noreferrer">${labelHtml}</a>`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Safe rich text for important notes.
+ * Supports: <b>, <strong>, <em>, <i>, <br>, <a href="https://...">,
+ * **bold**, [label](https://...), and newlines.
+ */
+function formatRichNote(value) {
+  let html = escapeHtml(value);
+  html = html
+    .replace(/&lt;br\s*\/?&gt;/gi, "<br>")
+    .replace(/&lt;(\/?)(b|strong|em|i)&gt;/gi, "<$1$2>")
+    .replace(
+      /&lt;a\s+href=&quot;(https?:\/\/[^&]+?)&quot;&gt;([\s\S]*?)&lt;\/a&gt;/gi,
+      (match, url, label) => safeNoteLink(url, label) || match
+    )
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (match, label, url) => {
+      return safeNoteLink(url, label) || match;
+    })
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\n/g, "<br>");
+  return html;
 }
 
 const UI_ICONS = {
@@ -136,6 +181,87 @@ function parseFreeGb(value) {
   return amount;
 }
 
+function parsePriceSortValue(raw) {
+  if (raw == null) return Number.POSITIVE_INFINITY;
+  const text = String(raw).trim().toLowerCase();
+  if (!text || text === "—" || text === "–" || text === "-" || text === "n/a") {
+    return Number.POSITIVE_INFINITY;
+  }
+  if (text.startsWith("free")) return 0;
+  if (
+    text === "premium" ||
+    text === "host cost" ||
+    text === "varies" ||
+    text === "bundle"
+  ) {
+    return Number.POSITIVE_INFINITY;
+  }
+  const match = text.replace(/,/g, "").match(/([\d.]+)/);
+  if (!match) return Number.POSITIVE_INFINITY;
+  return Number(match[1]);
+}
+
+function formatPriceDisplay(raw) {
+  if (raw == null) return "—";
+  const text = String(raw).trim();
+  if (!text) return "—";
+  if (/[€$£]|usd|eur|gbp|free|premium|n\/a|host|varies|bundle/i.test(text)) {
+    return text;
+  }
+  // Plain number (optional ~) → default to euro
+  const match = text.match(/^(~)?(\d+(?:[.,]\d+)?)$/);
+  if (match) {
+    const approx = match[1] || "";
+    const amount = match[2].replace(",", ".");
+    return `${approx}€${amount}`;
+  }
+  return text;
+}
+
+function normalizePricingKey(key) {
+  return String(key).trim().toLowerCase().replace(/\s+/g, "");
+}
+
+function parsePricingKey(key) {
+  const normalized = normalizePricingKey(key);
+  const match = normalized.match(/^(\d+(?:\.\d+)?)(gb|tb)$/);
+  if (!match) return null;
+  const amount = Number(match[1]);
+  const unit = match[2];
+  const gb = unit === "tb" ? amount * 1024 : amount;
+  const nice = Number.isInteger(amount) ? String(amount) : String(amount);
+  const label = `${nice} ${unit.toUpperCase()}`;
+  return { id: `${nice}${unit}`, label, gb, amount, unit };
+}
+
+function getPricingValue(provider, tierId) {
+  const pricing = provider.pricing || {};
+  if (pricing[tierId] != null && String(pricing[tierId]).trim() !== "") {
+    return pricing[tierId];
+  }
+  const wanted = normalizePricingKey(tierId);
+  const wantedParsed = parsePricingKey(tierId);
+  for (const [key, value] of Object.entries(pricing)) {
+    if (value == null || String(value).trim() === "") continue;
+    if (normalizePricingKey(key) === wanted) return value;
+    const parsed = parsePricingKey(key);
+    if (parsed && wantedParsed && parsed.gb === wantedParsed.gb) return value;
+  }
+  return "";
+}
+
+function priceForTier(provider, tierId) {
+  return parsePriceSortValue(getPricingValue(provider, tierId));
+}
+
+function isPriceSort(sortValue = state.sort) {
+  return String(sortValue).startsWith("price-");
+}
+
+function priceSortTierId(sortValue = state.sort) {
+  return String(sortValue).replace(/^price-/, "");
+}
+
 function hasFreeTier(provider) {
   const gb = parseFreeGb(provider.free_storage);
   return gb > 0 || /self-hosted/i.test(provider.free_storage);
@@ -151,7 +277,8 @@ function getNote(provider, featureId) {
 
 function matchesFeatureRequirement(provider, featureId) {
   const status = getStatus(provider, featureId);
-  if (state.strictYes) return status === "yes";
+  // E2EE is always full Yes only — Partial (paid add-on / vault-only) does not count
+  if (featureId === "e2ee" || state.strictYes) return status === "yes";
   return status === "yes" || status === "partial";
 }
 
@@ -184,7 +311,10 @@ function getFilteredProviders() {
         provider.free_storage,
         provider.bandwidth,
         provider.file_limit,
+        provider.file_limit_tip,
         provider.speed_warning,
+        provider.important_note,
+        provider.important_note_label,
       ]
         .join(" ")
         .toLowerCase();
@@ -198,6 +328,7 @@ function getFilteredProviders() {
       return false;
     }
     if (state.freeTierOnly && !hasFreeTier(provider)) return false;
+    if (state.hideNotRecommended && provider.not_recommended) return false;
 
     for (const featureId of state.requiredFeatures) {
       if (!matchesFeatureRequirement(provider, featureId)) return false;
@@ -214,7 +345,15 @@ function getFilteredProviders() {
     "free-desc": (a, b) => parseFreeGb(b.free_storage) - parseFreeGb(a.free_storage) || a.name.localeCompare(b.name),
   };
 
-  list = [...list].sort(sorters[state.sort] ?? sorters["name-asc"]);
+  if (isPriceSort()) {
+    const tierId = priceSortTierId();
+    list = [...list].sort(
+      (a, b) =>
+        priceForTier(a, tierId) - priceForTier(b, tierId) || a.name.localeCompare(b.name)
+    );
+  } else {
+    list = [...list].sort(sorters[state.sort] ?? sorters["name-asc"]);
+  }
   return list;
 }
 
@@ -245,8 +384,8 @@ const PARTIAL_FALLBACK_TIP =
 function statusPill(status, note, { showNote = true } = {}) {
   const label = STATUS_LABEL[status] ?? status;
   const visibleNote = showNote && note ? `<span class="note-tip">${escapeHtml(note)}</span>` : "";
-  const isPartial = status === "partial";
-  const tipText = isPartial ? note || PARTIAL_FALLBACK_TIP : "";
+  const tipText =
+    note || (status === "partial" ? PARTIAL_FALLBACK_TIP : "");
   const tipAttrs = tipText
     ? ` tabindex="0" data-tip="${escapeHtml(tipText)}" class="status-pill ${status} has-tip"`
     : ` class="status-pill ${status}"`;
@@ -272,37 +411,73 @@ function speedWarning(provider) {
   `;
 }
 
+function importantNoteTeaser(text) {
+  const compact = stripRichNote(text);
+  if (!compact) return "";
+  if (compact.length <= 160) return compact;
+  return `${compact.slice(0, 157).trimEnd()}…`;
+}
+
+function importantNote(provider, { open = false } = {}) {
+  if (!provider.important_note) return "";
+  const label = provider.important_note_label || "Important";
+  const tip = importantNoteTeaser(provider.important_note);
+  return `
+    <details class="provider-note" ${open ? "open" : ""}>
+      <summary class="provider-note-summary has-tip" tabindex="0" data-tip="${escapeHtml(tip)}">
+        <span class="provider-note-label">${escapeHtml(label)}</span>
+        <span class="provider-note-hint">Hover or expand</span>
+      </summary>
+      <div class="provider-note-body">${formatRichNote(provider.important_note)}</div>
+    </details>
+  `;
+}
+
+function notRecommendedBadge(provider) {
+  if (!provider.not_recommended) return "";
+  return `<span class="not-recommended-badge" title="Marked not recommended">Not recommended</span>`;
+}
+
 function providerCell(provider, { compact = false } = {}) {
   const shortlisted = state.shortlist.has(provider.id);
+  const badge = notRecommendedBadge(provider);
   return `
-    <div class="provider-cell">
+    <div class="provider-cell${provider.not_recommended ? " has-not-recommended" : ""}">
       ${providerAvatar(provider)}
       <div class="provider-meta">
-        <span class="provider-name">${escapeHtml(provider.name)}</span>
+        <span class="provider-name">
+          <span class="provider-name-text">${escapeHtml(provider.name)}</span>
+        </span>
         <span class="provider-sub">${escapeHtml(provider.region)} · ${escapeHtml(provider.hq)}</span>
         ${speedWarning(provider)}
+        ${importantNote(provider)}
       </div>
       ${
         compact
-          ? ""
-          : `<div class="row-actions">
-              <button
-                type="button"
-                class="icon-action ${shortlisted ? "is-active" : ""}"
-                data-action="shortlist"
-                data-id="${provider.id}"
-                title="${shortlisted ? "Remove from shortlist" : "Add to shortlist"}"
-                aria-label="${shortlisted ? "Remove from shortlist" : "Add to shortlist"}"
-                aria-pressed="${shortlisted}"
-              >${shortlisted ? UI_ICONS.check : UI_ICONS.plus}</button>
-              <button
-                type="button"
-                class="icon-action"
-                data-action="details"
-                data-id="${provider.id}"
-                title="Details"
-                aria-label="Details"
-              >${UI_ICONS.info}</button>
+          ? badge
+            ? `<div class="provider-aside">${badge}</div>`
+            : ""
+          : `<div class="provider-aside">
+              ${badge}
+              <div class="row-actions">
+                <button
+                  type="button"
+                  class="icon-action ${shortlisted ? "is-active" : ""}"
+                  data-action="shortlist"
+                  data-id="${provider.id}"
+                  title="${shortlisted ? "Remove from shortlist" : "Add to shortlist"}"
+                  aria-label="${shortlisted ? "Remove from shortlist" : "Add to shortlist"}"
+                  aria-pressed="${shortlisted}"
+                >${shortlisted ? UI_ICONS.check : UI_ICONS.plus}</button>
+                <button
+                  type="button"
+                  class="icon-action"
+                  data-action="details"
+                  data-id="${provider.id}"
+                  title="Details"
+                  aria-label="Details"
+                >${UI_ICONS.info}</button>
+              </div>
             </div>`
       }
     </div>
@@ -341,8 +516,13 @@ function fileLimitLabel() {
   return tipLabel("File", FILE_LIMIT_LABEL_TIP);
 }
 
+function fileLimitTip(provider) {
+  if (provider.file_limit_tip) return provider.file_limit_tip;
+  return FILE_LIMIT_LABEL_TIP;
+}
+
 function fileLimitValue(provider) {
-  return tippedValue(provider.file_limit || "—", FILE_LIMIT_LABEL_TIP);
+  return tippedValue(provider.file_limit || "—", fileLimitTip(provider));
 }
 
 function limitsCell(provider) {
@@ -360,6 +540,81 @@ function limitsCell(provider) {
         ${fileLimitLabel()}
         ${fileLimitValue(provider)}
       </div>
+    </div>
+  `;
+}
+
+const DEFAULT_PRICING_TIERS = ["1tb"];
+
+function pricingTiers() {
+  const byGb = new Map();
+
+  for (const key of DEFAULT_PRICING_TIERS) {
+    const parsed = parsePricingKey(key);
+    if (!parsed) continue;
+    byGb.set(parsed.gb, {
+      id: parsed.id,
+      label: parsed.label,
+      gb: parsed.gb,
+    });
+  }
+
+  for (const provider of state.data?.providers ?? []) {
+    for (const key of Object.keys(provider.pricing || {})) {
+      const parsed = parsePricingKey(key);
+      if (!parsed) continue;
+      if (!byGb.has(parsed.gb)) {
+        byGb.set(parsed.gb, {
+          id: parsed.id,
+          label: parsed.label,
+          gb: parsed.gb,
+        });
+      }
+    }
+  }
+  return [...byGb.values()].sort((a, b) => a.gb - b.gb);
+}
+
+function fillPriceSortOptions() {
+  const group = $("sort-price-group");
+  if (!group) return;
+  const tiers = pricingTiers();
+  group.hidden = tiers.length === 0;
+  group.innerHTML = tiers
+    .map(
+      (tier) =>
+        `<option value="price-${tier.id}">Price /mo · ${escapeHtml(tier.label)}</option>`
+    )
+    .join("");
+}
+
+function enablePricingView() {
+  if (state.showPricing) return;
+  state.showPricing = true;
+  const checkbox = $("show-pricing");
+  if (checkbox) checkbox.checked = true;
+}
+
+function pricingCell(provider) {
+  const tiers = pricingTiers();
+  if (!tiers.length) {
+    return `<div class="limits-cell pricing-cell"><span class="value">—</span></div>`;
+  }
+  const rows = tiers
+    .map((tier) => {
+      const value = formatPriceDisplay(getPricingValue(provider, tier.id));
+      return `
+        <div class="limit-row">
+          <span class="label">${escapeHtml(tier.label)}</span>
+          <span class="value">${escapeHtml(value)}</span>
+        </div>
+      `;
+    })
+    .join("");
+
+  return `
+    <div class="limits-cell pricing-cell">
+      ${rows}
     </div>
   `;
 }
@@ -488,6 +743,11 @@ function renderBrowseTable(providers) {
     <tr>
       <th scope="col" class="col-provider">Provider</th>
       <th scope="col" class="col-limits">Free / Limits</th>
+      ${
+        state.showPricing
+          ? `<th scope="col" class="col-pricing">Pricing /mo</th>`
+          : ""
+      }
       ${features
         .map(
           (feature) => `
@@ -511,9 +771,15 @@ function renderBrowseTable(providers) {
         .join("");
 
       return `
-        <tr class="${state.shortlist.has(provider.id) ? "is-shortlisted" : ""}" data-provider-row="${provider.id}">
+        <tr class="${[
+          state.shortlist.has(provider.id) ? "is-shortlisted" : "",
+          provider.not_recommended ? "is-not-recommended" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}" data-provider-row="${provider.id}">
           <th scope="row" class="col-provider">${providerCell(provider)}</th>
           <td class="col-limits">${limitsCell(provider)}</td>
+          ${state.showPricing ? `<td class="col-pricing">${pricingCell(provider)}</td>` : ""}
           ${cells}
         </tr>
       `;
@@ -546,7 +812,8 @@ function renderCompareTable() {
         .map(
           (provider) => `
         <th scope="col" class="compare-provider">
-          <a href="${escapeHtml(provider.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(provider.name)}</a>
+          <a class="provider-name-text" href="${escapeHtml(provider.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(provider.name)}</a>
+          ${notRecommendedBadge(provider)}
           <div class="provider-sub">${escapeHtml(provider.region)}</div>
         </th>
       `
@@ -580,7 +847,28 @@ function renderCompareTable() {
           ? `<div class="compare-speed">${speedWarning(provider)}</div>`
           : `<span class="value">—</span>`,
     },
+    {
+      label: "Important note",
+      description: "Longer caveats that do not fit in a single feature cell.",
+      render: (provider) =>
+        provider.important_note
+          ? `<div class="compare-note">${importantNote(provider, { open: true })}</div>`
+          : `<span class="value">—</span>`,
+    },
   ];
+
+  if (state.showPricing) {
+    for (const tier of pricingTiers()) {
+      limitRows.push({
+        label: `Price /mo · ${tier.label}`,
+        description: "Approximate monthly plan price for this capacity.",
+        render: (provider) => {
+          const value = formatPriceDisplay(getPricingValue(provider, tier.id));
+          return `<span class="value">${escapeHtml(value)}</span>`;
+        },
+      });
+    }
+  }
 
   const limitHtml = limitRows
     .map(
@@ -661,7 +949,7 @@ function openDrawer(providerId) {
     <div class="drawer-hero">
       ${providerAvatar(provider)}
       <div>
-        <h2>${escapeHtml(provider.name)}</h2>
+        <h2><span class="provider-name-text">${escapeHtml(provider.name)}</span> ${notRecommendedBadge(provider)}</h2>
         <p>${escapeHtml(provider.hq)} · ${escapeHtml(provider.region)}</p>
       </div>
     </div>
@@ -681,6 +969,18 @@ function openDrawer(providerId) {
       ${
         provider.speed_warning
           ? `<div class="speed-warning-slot">${speedWarning(provider)}</div>`
+          : ""
+      }
+      ${
+        provider.important_note
+          ? `<div class="provider-note-slot">${importantNote(provider, {
+              open: true,
+            })}</div>`
+          : ""
+      }
+      ${
+        state.showPricing
+          ? `<div class="drawer-pricing">${pricingCell(provider)}</div>`
           : ""
       }
     </div>
@@ -761,6 +1061,7 @@ function bindEvents() {
 
   $("sort").addEventListener("change", (event) => {
     state.sort = event.target.value;
+    if (isPriceSort(state.sort)) enablePricingView();
     render();
   });
 
@@ -771,6 +1072,16 @@ function bindEvents() {
 
   $("free-tier-only").addEventListener("change", (event) => {
     state.freeTierOnly = event.target.checked;
+    render();
+  });
+
+  $("hide-not-recommended").addEventListener("change", (event) => {
+    state.hideNotRecommended = event.target.checked;
+    render();
+  });
+
+  $("show-pricing").addEventListener("change", (event) => {
+    state.showPricing = event.target.checked;
     render();
   });
 
@@ -799,11 +1110,15 @@ function bindEvents() {
     state.regions.clear();
     state.strictYes = false;
     state.freeTierOnly = false;
+    state.hideNotRecommended = false;
+    state.showPricing = false;
     state.sort = "name-asc";
     $("search").value = "";
     $("sort").value = "name-asc";
     $("strict-yes").checked = false;
     $("free-tier-only").checked = false;
+    $("hide-not-recommended").checked = false;
+    $("show-pricing").checked = false;
     renderFilterControls();
     render();
   });
@@ -856,6 +1171,7 @@ async function init() {
       console.warn("UI is tuned for up to 50 providers; dataset is larger.");
     }
     renderMeta();
+    fillPriceSortOptions();
     renderFilterControls();
     bindEvents();
     bindTooltipDelegation();

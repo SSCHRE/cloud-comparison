@@ -2,8 +2,8 @@
   "meta": {
     "title": "Cloud Storage Comparison",
     "tagline": "Filter and compare cloud storage on the features that actually matter.",
-    "updated": "2026-08-10",
-    "disclaimer": "Feature support can change. Notes reflect publicly documented behavior as of the update date. Partial means limited, paid, local-only, or folder-scoped support.",
+    "updated": "2026-08-11",
+    "disclaimer": "Feature support can change. Notes reflect publicly documented behavior as of the update date. Partial means limited, paid, local-only, or folder-scoped support. Pricing is approximate per month (often based on annual billing) and may omit promotions or lifetime deals.",
     "maxCompare": 8
   },
   "features": [
@@ -101,7 +101,11 @@
       },
       "bandwidth": "Unlimited",
       "file_limit": "None",
-      "icon": "icons/drime.png"
+      "icon": "icons/drime.png",
+      "pricing": {
+        "200gb": "2.99",
+        "2tb": "5.50"
+      }
     },
     {
       "id": "filen",
@@ -147,7 +151,13 @@
       },
       "bandwidth": "Unlimited",
       "file_limit": "None",
-      "icon": "https://filen.io/favicon.ico"
+      "icon": "https://filen.io/favicon.ico",
+      "pricing": {
+        "200gb": "1.99",
+        "500gb": "3.99",
+        "2tb": "8.99",
+        "10tb": "39.99"
+      }
     },
     {
       "id": "pcloud",
@@ -193,7 +203,8 @@
       },
       "bandwidth": "Plan traffic cap",
       "file_limit": "None",
-      "icon": "icons/pcloud.png"
+      "icon": "icons/pcloud.png",
+      "pricing": {}
     },
     {
       "id": "proton-drive",
@@ -239,7 +250,8 @@
       },
       "bandwidth": "Unlimited",
       "file_limit": "None",
-      "icon": "icons/proton-drive.png"
+      "icon": "icons/proton-drive.png",
+      "pricing": {}
     },
     {
       "id": "jottacloud",
@@ -285,7 +297,8 @@
       },
       "bandwidth": "Unlimited",
       "file_limit": "None",
-      "icon": "icons/jottacloud.png"
+      "icon": "icons/jottacloud.png",
+      "pricing": {}
     },
     {
       "id": "backblaze-b2",
@@ -331,7 +344,8 @@
       },
       "bandwidth": "Egress priced",
       "file_limit": "None",
-      "icon": "icons/backblaze-b2.png"
+      "icon": "icons/backblaze-b2.png",
+      "pricing": {}
     },
     {
       "id": "terabox",
@@ -376,9 +390,300 @@
         }
       },
       "bandwidth": "Fair use / plan",
-      "file_limit": "None practical",
+      "file_limit": "4 GB",
+      "file_limit_tip": "4 GB max per file — practically useless for large archives, videos, or disk images.",
       "icon": "icons/terabox.png",
-      "speed_warning": "Free downloads capped around ~200 KB/s without Premium."
+      "speed_warning": "Free downloads capped around ~200 KB/s without Premium.",
+      "pricing": {}
+    },
+    {
+      "id": "icedrive",
+      "name": "Icedrive",
+      "url": "https://icedrive.net",
+      "hq": "Wales / UK",
+      "region": "EU",
+      "free_storage": "10 GB",
+      "summary": "Consumer cloud with lifetime deals, a virtual drive client, and optional Twofish client-side encryption.",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Desktop app + virtual drive"
+        },
+        "lifetime_deals": {
+          "status": "yes",
+          "note": "Frequent lifetime offers"
+        },
+        "camera_backup": {
+          "status": "yes",
+          "note": "Mobile camera backup"
+        },
+        "rclone": {
+          "status": "no",
+          "note": "No native rclone; WebDAV can be used via rclone"
+        },
+        "webdav": {
+          "status": "yes",
+          "note": "WebDAV on paid plans"
+        },
+        "e2ee": {
+          "status": "partial",
+          "note": "Encrypted folder / paid client-side encryption"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android"
+        },
+        "file_versioning": {
+          "status": "partial",
+          "note": "Limited versioning"
+        }
+      },
+      "bandwidth": "Unlimited",
+      "file_limit": "None",
+      "icon": "icons/icedrive.png",
+      "pricing": {}
+    },
+    {
+      "id": "mega",
+      "name": "MEGA",
+      "url": "https://mega.io",
+      "hq": "New Zealand",
+      "region": "Other",
+      "free_storage": "20 GB",
+      "summary": "Large free tier with client-side encryption and broad platform support.",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Desktop sync + MEGAsync"
+        },
+        "lifetime_deals": {
+          "status": "no",
+          "note": "Subscriptions only"
+        },
+        "camera_backup": {
+          "status": "yes",
+          "note": "Camera uploads on mobile"
+        },
+        "rclone": {
+          "status": "yes",
+          "note": "Native rclone backend"
+        },
+        "webdav": {
+          "status": "no",
+          "note": "No native WebDAV"
+        },
+        "e2ee": {
+          "status": "yes",
+          "note": "Client-side encryption"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android"
+        },
+        "file_versioning": {
+          "status": "yes",
+          "note": "File versions"
+        }
+      },
+      "bandwidth": "Transfer quota",
+      "file_limit": "None",
+      "icon": "icons/mega.png",
+      "pricing": {}
+    },
+    {
+      "id": "koofr",
+      "name": "Koofr",
+      "url": "https://koofr.eu",
+      "hq": "Slovenia",
+      "region": "EU",
+      "free_storage": "10 GB",
+      "summary": "EU cloud that can also mount Dropbox, Drive, and OneDrive in one place.",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Desktop sync"
+        },
+        "lifetime_deals": {
+          "status": "no",
+          "note": "Subscriptions"
+        },
+        "camera_backup": {
+          "status": "yes",
+          "note": "Mobile backup"
+        },
+        "rclone": {
+          "status": "yes",
+          "note": "rclone via WebDAV"
+        },
+        "webdav": {
+          "status": "yes",
+          "note": "Native WebDAV"
+        },
+        "e2ee": {
+          "status": "no",
+          "note": "Server-side encryption"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android"
+        },
+        "file_versioning": {
+          "status": "yes",
+          "note": "Trash + versions"
+        }
+      },
+      "bandwidth": "Unlimited",
+      "file_limit": "None",
+      "icon": "icons/koofr.png",
+      "pricing": {}
+    },
+    {
+      "id": "google-drive",
+      "name": "Google Drive",
+      "url": "https://drive.google.com",
+      "hq": "United States",
+      "region": "US",
+      "free_storage": "15 GB",
+      "summary": "Default consumer cloud tied to Google accounts and Docs collaboration.",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Drive for desktop"
+        },
+        "lifetime_deals": {
+          "status": "no",
+          "note": "Subscriptions"
+        },
+        "camera_backup": {
+          "status": "yes",
+          "note": "Google Photos backup"
+        },
+        "rclone": {
+          "status": "yes",
+          "note": "Native rclone backend"
+        },
+        "webdav": {
+          "status": "no",
+          "note": "No official WebDAV"
+        },
+        "e2ee": {
+          "status": "no",
+          "note": "Google can access content"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android"
+        },
+        "file_versioning": {
+          "status": "yes",
+          "note": "Version history"
+        }
+      },
+      "bandwidth": "Upload ~750 GB/day",
+      "file_limit": "5 TB",
+      "icon": "icons/google-drive.png",
+      "pricing": {}
+    },
+    {
+      "id": "felicloud",
+      "name": "Felicloud",
+      "url": "https://felicloud.com/en/",
+      "hq": "Portugal",
+      "region": "EU",
+      "free_storage": "10 GB",
+      "not_recommended": true,
+      "summary": "EU-hosted managed Nextcloud with lifetime plans, marketed as privacy-first European storage.",
+      "important_note_label": "Read this",
+      "important_note": "Felicloud is essentially managed Nextcloud with little custom development.\n\nSupport is reportedly poor, and there have been claims of Reddit posts being removed.",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Nextcloud desktop clients"
+        },
+        "lifetime_deals": {
+          "status": "yes",
+          "note": "100 GB / 1 TB / 2 TB one-time plans"
+        },
+        "camera_backup": {
+          "status": "yes",
+          "note": "Nextcloud auto upload"
+        },
+        "rclone": {
+          "status": "yes",
+          "note": "rclone via WebDAV"
+        },
+        "webdav": {
+          "status": "yes",
+          "note": "Native Nextcloud WebDAV"
+        },
+        "e2ee": {
+          "status": "partial",
+          "note": "Optional Nextcloud E2EE folders only — see provider note"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android (Nextcloud)"
+        },
+        "file_versioning": {
+          "status": "yes",
+          "note": "About 30-day version history"
+        }
+      },
+      "bandwidth": "Unlimited",
+      "file_limit": "None",
+      "icon": "icons/felicloud.png",
+      "pricing": {}
+    },
+    {
+      "id": "internxt",
+      "name": "Internxt",
+      "url": "https://internxt.com",
+      "hq": "Spain",
+      "region": "EU",
+      "free_storage": "1 GB",
+      "not_recommended": true,
+      "summary": "Spanish zero-knowledge Drive with post-quantum encryption, lifetime plans, and open-source clients.",
+      "important_note_label": "Read this",
+      "important_note": "Internxt is a privacy-focused cloud provider, <b>but has faced lots of criticisms over unreliable support and moderation</b>\n\nUsers reported that negative Reddit posts or criticism have been removed from their sub-reddit.\n\nBesides that they lock ANY custom feature behind their more expensive plans.\n\n<b>IMPORTANT:</b> They have threatened users to delete their data, which can be found <a href=\"https://www.reddit.com/r/cloudstorage/comments/1v67vdc/stay_away_from_internxt/\">in this Reddit thread</a>\n\nAlso see <a href=\"https://www.reddit.com/r/cloudstorage/comments/1vknn03/internxt_when_security_is_not_enough_long/\">this</a>",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Desktop apps + virtual drive"
+        },
+        "lifetime_deals": {
+          "status": "yes",
+          "note": "1 TB / 3 TB / 5 TB one-time plans (stackable)"
+        },
+        "camera_backup": {
+          "status": "yes",
+          "note": "Mobile camera-roll backup"
+        },
+        "rclone": {
+          "status": "partial",
+          "note": "Native/CLI rclone on Ultimate plan"
+        },
+        "webdav": {
+          "status": "partial",
+          "note": "Local WebDAV via Internxt CLI; Ultimate plan"
+        },
+        "e2ee": {
+          "status": "yes",
+          "note": "Zero-knowledge E2EE + 'post-quantum'"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android"
+        },
+        "file_versioning": {
+          "status": "yes",
+          "note": "On paid plans; trash retention varies by tier"
+        }
+      },
+      "bandwidth": "Unlimited",
+      "file_limit": "10–100 GB",
+      "file_limit_tip": "Per-file cap depends on plan: about 10 GB (Essential), 50 GB (Premium), or 100 GB (Ultimate).",
+      "icon": "icons/internxt.png",
+      "pricing": {}
     }
   ]
 }
