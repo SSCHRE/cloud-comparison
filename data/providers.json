@@ -5,7 +5,7 @@
     "updated": "2026-10-27",
     "disclaimer": "Feature support can change. Notes reflect publicly documented behavior as of the update date. Partial means limited, paid, local-only, or folder-scoped support. Pricing is the month-to-month price (not the yearly-billing discount) and omits promotions and lifetime deals. Converted prices (marked ~) use European Central Bank exchange rates; hover a price to see the provider's original.",
     "maxCompare": 8,
-    "apiBase": "",
+    "apiBase": "https://cloud-comparison-api.sschre-cloud-comparison.workers.dev/",
     "currency": {
       "_comment": "Fallback exchange rates (units per 1 EUR, ECB via frankfurter.dev). Live rates replace these when the page loads.",
       "ratesDate": "2026-10-26",

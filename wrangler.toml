@@ -13,7 +13,7 @@ ALLOWED_ORIGINS = "https://sschre.github.io,http://localhost:8765,http://127.0.0
 # then paste the id it prints below.
 [[kv_namespaces]]
 binding = "REPORTS"
-id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+id = "93f9642ecb4e4342b9a7171d42096efb"
 
 # The admin password is NOT stored here. Set it as a secret:
 #   npx wrangler secret put ADMIN_PASSWORD
