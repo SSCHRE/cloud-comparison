@@ -1,0 +1,20 @@
+# Cloudflare Worker for "Report wrong info" + /admin.
+# The website itself stays on GitHub Pages; only this small API runs on Cloudflare (free tier).
+name = "cloud-comparison-api"
+main = "worker/index.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Sites allowed to call the API (comma-separated): the GitHub Pages site plus local testing.
+ALLOWED_ORIGINS = "https://sschre.github.io,http://localhost:8765,http://127.0.0.1:8765,http://localhost:8000"
+
+# Report storage. Create the namespace once with:
+#   npx wrangler kv namespace create REPORTS
+# then paste the id it prints below.
+[[kv_namespaces]]
+binding = "REPORTS"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+
+# The admin password is NOT stored here. Set it as a secret:
+#   npx wrangler secret put ADMIN_PASSWORD
+# For local testing, put ADMIN_PASSWORD=... in .dev.vars (git-ignored, never deployed).

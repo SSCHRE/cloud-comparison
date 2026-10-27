@@ -1,10 +1,24 @@
 {
   "meta": {
     "title": "Cloud Storage Comparison",
-    "tagline": "Filter and compare cloud storage on the features that actually matter.",
-    "updated": "2026-08-11",
-    "disclaimer": "Feature support can change. Notes reflect publicly documented behavior as of the update date. Partial means limited, paid, local-only, or folder-scoped support. Pricing is approximate per month (often based on annual billing) and may omit promotions or lifetime deals.",
-    "maxCompare": 8
+    "tagline": "What each provider actually supports, and where the catches are. Kept by hand and checked against the providers' own docs.",
+    "updated": "2026-10-27",
+    "disclaimer": "Feature support can change. Notes reflect publicly documented behavior as of the update date. Partial means limited, paid, local-only, or folder-scoped support. Pricing is the month-to-month price (not the yearly-billing discount) and omits promotions and lifetime deals. Converted prices (marked ~) use European Central Bank exchange rates; hover a price to see the provider's original.",
+    "maxCompare": 8,
+    "apiBase": "",
+    "currency": {
+      "_comment": "Fallback exchange rates (units per 1 EUR, ECB via frankfurter.dev). Live rates replace these when the page loads.",
+      "ratesDate": "2026-10-26",
+      "rates": {
+        "EUR": 1,
+        "USD": 1.1188,
+        "CAD": 1.5695,
+        "AUD": 1.5927,
+        "CHF": 0.9243,
+        "NOK": 10.4545,
+        "GBP": 0.8382
+      }
+    }
   },
   "features": [
     {
@@ -103,7 +117,7 @@
       "file_limit": "None",
       "icon": "icons/drime.png",
       "pricing": {
-        "200gb": "2.99",
+        "500gb": "2.99",
         "2tb": "5.50"
       }
     },
@@ -121,8 +135,8 @@
           "note": "Multiple sync modes"
         },
         "lifetime_deals": {
-          "status": "partial",
-          "note": "Starter LTD; larger plans seasonal"
+          "status": "no",
+          "note": "Starter lifetime plan was removed 'temporarily' but has not returned since"
         },
         "camera_backup": {
           "status": "yes",
@@ -165,7 +179,7 @@
       "url": "https://www.pcloud.com",
       "hq": "Switzerland",
       "region": "CH",
-      "free_storage": "10 GB",
+      "free_storage": "2GB - 10GB",
       "summary": "Polished sync product known for lifetime plans; Crypto E2EE is a paid add-on.",
       "features": {
         "sync_app": {
@@ -201,10 +215,14 @@
           "note": "Rewind by plan"
         }
       },
-      "bandwidth": "Plan traffic cap",
+      "bandwidth": "Unlimited",
       "file_limit": "None",
       "icon": "icons/pcloud.png",
-      "pricing": {}
+      "pricing": {
+        "500gb": "4.99",
+        "2tb": "9.99",
+        "10tb": "29.99"
+      }
     },
     {
       "id": "proton-drive",
@@ -245,13 +263,18 @@
         },
         "file_versioning": {
           "status": "yes",
-          "note": "Version history"
+          "note": "Free accounts: up to 10 versions per file for 7 days. Paid users: up to 200 versions for up to 10 years"
         }
       },
       "bandwidth": "Unlimited",
       "file_limit": "None",
       "icon": "icons/proton-drive.png",
-      "pricing": {}
+      "pricing": {
+        "200gb": "4.99",
+        "500gb": "12.99",
+        "2tb": "19.99",
+        "3tb": "29.99"
+      }
     },
     {
       "id": "jottacloud",
@@ -298,7 +321,10 @@
       "bandwidth": "Unlimited",
       "file_limit": "None",
       "icon": "icons/jottacloud.png",
-      "pricing": {}
+      "pricing": {
+        "1tb": "NOK 79",
+        "5tb": "NOK 159"
+      }
     },
     {
       "id": "backblaze-b2",
@@ -342,10 +368,15 @@
           "note": "Object versions"
         }
       },
-      "bandwidth": "Egress priced",
-      "file_limit": "None",
+      "bandwidth": "3x storage",
+      "file_limit": "10tb",
       "icon": "icons/backblaze-b2.png",
-      "pricing": {}
+      "pricing": {
+        "1tb": "$6.95",
+        "2tb": "$13.90",
+        "10tb": "$69.50"
+      },
+      "pricing_note": "Pay as you go, per TB stored; first 10 GB free."
     },
     {
       "id": "terabox",
@@ -394,7 +425,10 @@
       "file_limit_tip": "4 GB max per file — practically useless for large archives, videos, or disk images.",
       "icon": "icons/terabox.png",
       "speed_warning": "Free downloads capped around ~200 KB/s without Premium.",
-      "pricing": {}
+      "pricing": {
+        "2tb": "$3.49",
+        "5tb": "$3.89"
+      }
     },
     {
       "id": "icedrive",
@@ -422,8 +456,8 @@
           "note": "No native rclone; WebDAV can be used via rclone"
         },
         "webdav": {
-          "status": "yes",
-          "note": "WebDAV on paid plans"
+          "status": "no",
+          "note": "WebDAV is being sunset by IceDrive for existing users. New users will have no WebDAV"
         },
         "e2ee": {
           "status": "partial",
@@ -441,7 +475,12 @@
       "bandwidth": "Unlimited",
       "file_limit": "None",
       "icon": "icons/icedrive.png",
-      "pricing": {}
+      "pricing": {
+        "1tb": "7.49",
+        "3tb": "11.99",
+        "5tb": "18.99",
+        "10tb": "32.99"
+      }
     },
     {
       "id": "mega",
@@ -488,7 +527,14 @@
       "bandwidth": "Transfer quota",
       "file_limit": "None",
       "icon": "icons/mega.png",
-      "pricing": {}
+      "pricing": {
+        "200gb": "3.33",
+        "750gb": "5.00",
+        "3tb": "9.99",
+        "10tb": "19.99",
+        "20tb": "29.99"
+      },
+      "pricing_note": "200 GB and 750 GB are billed yearly only; prices exclude VAT."
     },
     {
       "id": "koofr",
@@ -533,9 +579,17 @@
         }
       },
       "bandwidth": "Unlimited",
-      "file_limit": "None",
+      "file_limit": "Web: 375GB, App: 2TB",
       "icon": "icons/koofr.png",
-      "pricing": {}
+      "pricing": {
+        "100gb": "2.00",
+        "250gb": "4.00",
+        "500gb": "7.00",
+        "1tb": "10.00",
+        "2.5tb": "20.00",
+        "5tb": "35.00"
+      },
+      "pricing_note": "Billed yearly only; shown per month. Prices include VAT."
     },
     {
       "id": "google-drive",
@@ -579,10 +633,14 @@
           "note": "Version history"
         }
       },
-      "bandwidth": "Upload ~750 GB/day",
+      "bandwidth": "Upload ~750 GB/day per workspace",
       "file_limit": "5 TB",
       "icon": "icons/google-drive.png",
-      "pricing": {}
+      "pricing": {
+        "100gb": "1.99",
+        "2tb": "9.99",
+        "5tb": "21.99"
+      }
     },
     {
       "id": "felicloud",
@@ -591,10 +649,7 @@
       "hq": "Portugal",
       "region": "EU",
       "free_storage": "10 GB",
-      "not_recommended": true,
       "summary": "EU-hosted managed Nextcloud with lifetime plans, marketed as privacy-first European storage.",
-      "important_note_label": "Read this",
-      "important_note": "Felicloud is essentially managed Nextcloud with little custom development.\n\nSupport is reportedly poor, and there have been claims of Reddit posts being removed.",
       "features": {
         "sync_app": {
           "status": "yes",
@@ -632,7 +687,8 @@
       "bandwidth": "Unlimited",
       "file_limit": "None",
       "icon": "icons/felicloud.png",
-      "pricing": {}
+      "pricing": {},
+      "pricing_note": "Lifetime plans only: 100 GB $59 · 1 TB $249 · 2 TB $449 (one-time)."
     },
     {
       "id": "internxt",
@@ -683,7 +739,624 @@
       "file_limit": "10–100 GB",
       "file_limit_tip": "Per-file cap depends on plan: about 10 GB (Essential), 50 GB (Premium), or 100 GB (Ultimate).",
       "icon": "icons/internxt.png",
-      "pricing": {}
+      "pricing": {
+        "1tb": "9.99",
+        "2tb": "19.99",
+        "5tb": "29.99"
+      },
+      "pricing_note": "Billed yearly only. Lifetime plans also sold."
+    },
+    {
+      "id": "folderfort",
+      "name": "FolderFort",
+      "url": "https://folderfort.com",
+      "hq": "Canada",
+      "region": "Other",
+      "free_storage": "5 GB",
+      "not_recommended": true,
+      "summary": "Canadian web-first storage on Backblaze infrastructure, with SFTP, WebDAV, and rclone access via FF Connect.",
+      "important_note_label": "Read this",
+      "important_note": "FolderFort Classic shuts down on <b>November 16, 2026</b>. Classic lifetime holders are offered credit and a discount on 2.0 instead of a lifetime plan, many call this a straight up <b>rugpull</b>.\n\nFolderFort 2.0 is web-app only for now: native iOS and Android apps are still in development, and no desktop sync client is listed.\n\nFF Connect (SFTP / WebDAV / rclone) is limited to 2 concurrent sessions and counts against your monthly bandwidth.",
+      "features": {
+        "sync_app": {
+          "status": "partial",
+          "note": "No desktop client; sync via rclone / SFTP"
+        },
+        "lifetime_deals": {
+          "status": "no",
+          "note": "Lifetime plans were Classic only; 2.0 is subscription"
+        },
+        "camera_backup": {
+          "status": "no",
+          "note": "No mobile app yet"
+        },
+        "rclone": {
+          "status": "yes",
+          "note": "Via FF Connect (SFTP / WebDAV)"
+        },
+        "webdav": {
+          "status": "yes",
+          "note": "Hosted WebDAV via FF Connect"
+        },
+        "e2ee": {
+          "status": "no",
+          "note": "Server-side AES-256-GCM only"
+        },
+        "mobile_apps": {
+          "status": "no",
+          "note": "2.0 apps in development; web app only"
+        },
+        "file_versioning": {
+          "status": "no",
+          "note": "Not documented"
+        }
+      },
+      "bandwidth": "Transfer quota",
+      "file_limit": "Not stated",
+      "icon": "icons/folderfort.png",
+      "pricing": {
+        "100gb": "$4.99",
+        "200gb": "$7.99",
+        "1tb": "$12.99"
+      }
+    },
+    {
+      "id": "filelu",
+      "name": "FileLu",
+      "url": "https://filelu.com",
+      "hq": "United States",
+      "region": "US",
+      "free_storage": "1 GB",
+      "summary": "US storage with stackable 99-year lifetime plans and broad protocol access (WebDAV, FTP, S3, rclone, rsync).",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "FileLuSync: upload-only, mirror, or two-way"
+        },
+        "lifetime_deals": {
+          "status": "yes",
+          "note": "99-year plans, stackable; also via deal sites"
+        },
+        "camera_backup": {
+          "status": "yes",
+          "note": "FileLuSync camera backup"
+        },
+        "rclone": {
+          "status": "yes",
+          "note": "Native rclone backend"
+        },
+        "webdav": {
+          "status": "yes",
+          "note": "Native WebDAV, plus FTP/FTPS and S3"
+        },
+        "e2ee": {
+          "status": "partial",
+          "note": "Optional encrypted Vault folders only"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android (FileLuSync)"
+        },
+        "file_versioning": {
+          "status": "no",
+          "note": "Not documented"
+        }
+      },
+      "bandwidth": "Transfer quota",
+      "file_limit": "None",
+      "file_limit_tip": "No per-file limit on Premium; free accounts are capped at 10 GB per file.",
+      "icon": "icons/filelu.ico",
+      "pricing": {
+        "1tb": "$6.00"
+      }
+    },
+    {
+      "id": "dropbox",
+      "name": "Dropbox",
+      "url": "https://www.dropbox.com",
+      "hq": "United States",
+      "region": "US",
+      "free_storage": "2 GB",
+      "summary": "The original sync service: very reliable desktop sync, but a tiny free tier and no E2EE on personal plans.",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Best-in-class desktop sync"
+        },
+        "lifetime_deals": {
+          "status": "no",
+          "note": "Subscriptions only"
+        },
+        "camera_backup": {
+          "status": "yes",
+          "note": "Camera uploads on mobile"
+        },
+        "rclone": {
+          "status": "yes",
+          "note": "Native rclone backend"
+        },
+        "webdav": {
+          "status": "no",
+          "note": "No WebDAV"
+        },
+        "e2ee": {
+          "status": "no",
+          "note": "E2EE only for team folders on business plans"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android"
+        },
+        "file_versioning": {
+          "status": "yes",
+          "note": "30 days, longer on paid plans"
+        }
+      },
+      "bandwidth": "Fair use",
+      "file_limit": "2 TB",
+      "file_limit_tip": "2 TB per file; browser uploads over ~375 GB may time out, so use the desktop app.",
+      "icon": "icons/dropbox.png",
+      "pricing": {
+        "2tb": "$11.99"
+      }
+    },
+    {
+      "id": "onedrive",
+      "name": "OneDrive",
+      "url": "https://onedrive.live.com",
+      "hq": "United States",
+      "region": "US",
+      "free_storage": "5 GB",
+      "summary": "Microsoft's cloud, built into Windows and bundled with Microsoft 365, which makes 1 TB plans good value.",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Built into Windows; Files On-Demand"
+        },
+        "lifetime_deals": {
+          "status": "no",
+          "note": "Subscriptions / Microsoft 365"
+        },
+        "camera_backup": {
+          "status": "yes",
+          "note": "Mobile camera upload"
+        },
+        "rclone": {
+          "status": "yes",
+          "note": "Native rclone backend"
+        },
+        "webdav": {
+          "status": "no",
+          "note": "No official WebDAV"
+        },
+        "e2ee": {
+          "status": "no",
+          "note": "Personal Vault adds 2FA, not E2EE"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android"
+        },
+        "file_versioning": {
+          "status": "yes",
+          "note": "Version history"
+        }
+      },
+      "bandwidth": "Fair use",
+      "file_limit": "250 GB",
+      "icon": "icons/onedrive.png",
+      "pricing": {
+        "100gb": "$1.99",
+        "1tb": "$9.99"
+      }
+    },
+    {
+      "id": "icloud-drive",
+      "name": "iCloud Drive",
+      "url": "https://www.icloud.com/iclouddrive",
+      "hq": "United States",
+      "region": "US",
+      "free_storage": "5 GB",
+      "summary": "Seamless if you live in Apple's world; awkward everywhere else (no Android app, basic Windows client).",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Built into macOS; iCloud for Windows"
+        },
+        "lifetime_deals": {
+          "status": "no",
+          "note": "Subscriptions / Apple One"
+        },
+        "camera_backup": {
+          "status": "partial",
+          "note": "iCloud Photos on Apple devices only"
+        },
+        "rclone": {
+          "status": "yes",
+          "note": "rclone backend since v1.69 (re-auth every 30 days)"
+        },
+        "webdav": {
+          "status": "no",
+          "note": "No WebDAV"
+        },
+        "e2ee": {
+          "status": "partial",
+          "note": "Opt-in Advanced Data Protection; not offered in the UK"
+        },
+        "mobile_apps": {
+          "status": "partial",
+          "note": "iOS only; no Android app"
+        },
+        "file_versioning": {
+          "status": "no",
+          "note": "Only 'Recently Deleted' (30 days)"
+        }
+      },
+      "bandwidth": "Fair use",
+      "file_limit": "50 GB",
+      "icon": "icons/icloud-drive.png",
+      "pricing": {
+        "50gb": "$0.99",
+        "200gb": "$2.99",
+        "2tb": "$9.99",
+        "6tb": "$29.99",
+        "12tb": "$59.99"
+      }
+    },
+    {
+      "id": "box",
+      "name": "Box",
+      "url": "https://www.box.com",
+      "hq": "United States",
+      "region": "US",
+      "free_storage": "10 GB",
+      "summary": "Business-focused content cloud; the free tier looks generous until you hit the 250 MB file cap.",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Box Drive desktop client"
+        },
+        "lifetime_deals": {
+          "status": "no",
+          "note": "Subscriptions"
+        },
+        "camera_backup": {
+          "status": "partial",
+          "note": "Paid users only"
+        },
+        "rclone": {
+          "status": "yes",
+          "note": "Native rclone backend"
+        },
+        "webdav": {
+          "status": "no",
+          "note": "No WebDAV"
+        },
+        "e2ee": {
+          "status": "no",
+          "note": "Server-side encryption only"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android"
+        },
+        "file_versioning": {
+          "status": "partial",
+          "note": "Paid plans only"
+        }
+      },
+      "bandwidth": "Fair use",
+      "file_limit": "250 MB",
+      "file_limit_tip": "Free accounts are capped at 250 MB per file; paid plans allow 5 GB and up.",
+      "icon": "icons/box.png",
+      "pricing": {
+        "100gb": "$14.00"
+      }
+    },
+    {
+      "id": "sync-com",
+      "name": "Sync.com",
+      "url": "https://www.sync.com",
+      "hq": "Canada",
+      "region": "Other",
+      "free_storage": "5 GB",
+      "summary": "Canadian zero-knowledge storage with simple apps and E2EE by default, but no Linux client or rclone.",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Windows and macOS (no Linux)"
+        },
+        "lifetime_deals": {
+          "status": "no",
+          "note": "Subscriptions"
+        },
+        "camera_backup": {
+          "status": "yes",
+          "note": "Mobile camera upload"
+        },
+        "rclone": {
+          "status": "no",
+          "note": "No rclone backend"
+        },
+        "webdav": {
+          "status": "no",
+          "note": "No WebDAV"
+        },
+        "e2ee": {
+          "status": "yes",
+          "note": "Zero-knowledge by default"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android"
+        },
+        "file_versioning": {
+          "status": "yes",
+          "note": "30 days free; up to 365 days paid"
+        }
+      },
+      "bandwidth": "Unlimited",
+      "file_limit": "None",
+      "icon": "icons/sync-com.png",
+      "pricing": {
+        "1tb": "$16.00",
+        "5tb": "$32.00"
+      }
+    },
+    {
+      "id": "tresorit",
+      "name": "Tresorit",
+      "url": "https://tresorit.com",
+      "hq": "Switzerland",
+      "region": "CH",
+      "free_storage": "3 GB",
+      "summary": "Premium Swiss E2EE storage aimed at professionals; strong security, steep prices. The free Basic plan (3 GB, 2 devices) is only listed at tresorit.com/pricing/basic.",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Desktop sync + Tresorit Drive"
+        },
+        "lifetime_deals": {
+          "status": "no",
+          "note": "Subscriptions"
+        },
+        "camera_backup": {
+          "status": "yes",
+          "note": "Mobile camera upload"
+        },
+        "rclone": {
+          "status": "no",
+          "note": "No rclone backend"
+        },
+        "webdav": {
+          "status": "no",
+          "note": "No WebDAV"
+        },
+        "e2ee": {
+          "status": "yes",
+          "note": "E2EE by default"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android"
+        },
+        "file_versioning": {
+          "status": "yes",
+          "note": "Version history"
+        }
+      },
+      "bandwidth": "Plan-based",
+      "file_limit": "2–10 GB",
+      "file_limit_tip": "Free Basic is capped at 500 MB per file; paid plans allow roughly 2-10 GB.",
+      "icon": "icons/tresorit.png",
+      "pricing": {
+        "50gb": "4.99",
+        "1tb": "12.49",
+        "4tb": "29.99"
+      }
+    },
+    {
+      "id": "kdrive",
+      "name": "kDrive",
+      "url": "https://www.infomaniak.com/kdrive",
+      "hq": "Switzerland",
+      "region": "CH",
+      "free_storage": "15 GB",
+      "summary": "Infomaniak's Swiss-hosted drive with a big free tier and an office suite; no E2EE yet.",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Desktop sync app"
+        },
+        "lifetime_deals": {
+          "status": "no",
+          "note": "Subscriptions"
+        },
+        "camera_backup": {
+          "status": "yes",
+          "note": "Mobile photo backup"
+        },
+        "rclone": {
+          "status": "partial",
+          "note": "rclone via WebDAV on paid plans"
+        },
+        "webdav": {
+          "status": "partial",
+          "note": "WebDAV on paid kDrive plans only"
+        },
+        "e2ee": {
+          "status": "no",
+          "note": "Server-side encryption only"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android"
+        },
+        "file_versioning": {
+          "status": "yes",
+          "note": "Version history"
+        }
+      },
+      "bandwidth": "Unlimited",
+      "file_limit": "Not stated",
+      "icon": "icons/kdrive.png",
+      "pricing": {
+        "3tb": "CHF 5.54"
+      }
+    },
+    {
+      "id": "nextcloud",
+      "name": "Nextcloud",
+      "url": "https://nextcloud.com",
+      "hq": "Germany",
+      "region": "Self-hosted",
+      "free_storage": "Self-hosted",
+      "summary": "Open-source cloud you run yourself: full control and every protocol, but you're the sysadmin.",
+      "features": {
+        "sync_app": {
+          "status": "yes",
+          "note": "Official desktop clients"
+        },
+        "lifetime_deals": {
+          "status": "no",
+          "note": "Free software; you pay for hardware"
+        },
+        "camera_backup": {
+          "status": "yes",
+          "note": "Mobile auto upload"
+        },
+        "rclone": {
+          "status": "yes",
+          "note": "Native rclone backend (WebDAV)"
+        },
+        "webdav": {
+          "status": "yes",
+          "note": "Native WebDAV"
+        },
+        "e2ee": {
+          "status": "partial",
+          "note": "Optional E2EE folders"
+        },
+        "mobile_apps": {
+          "status": "yes",
+          "note": "iOS and Android"
+        },
+        "file_versioning": {
+          "status": "yes",
+          "note": "Built-in version history"
+        }
+      },
+      "bandwidth": "Host-dependent",
+      "file_limit": "None",
+      "file_limit_tip": "No hard cap; limited by your server's upload and PHP settings.",
+      "icon": "icons/nextcloud.png",
+      "pricing": {},
+      "pricing_note": "Self-hosted: free software, you pay for your own server or host."
+    },
+    {
+      "id": "hetzner-storage-box",
+      "name": "Hetzner Storage Box",
+      "url": "https://www.hetzner.com/storage/storage-box",
+      "hq": "Germany",
+      "region": "EU",
+      "free_storage": "None",
+      "summary": "Cheap, no-frills German storage over SFTP, SMB, WebDAV and rsync; a favourite for rclone and NAS backups.",
+      "features": {
+        "sync_app": {
+          "status": "partial",
+          "note": "No client; sync via rclone / SFTP"
+        },
+        "lifetime_deals": {
+          "status": "no",
+          "note": "Monthly billing"
+        },
+        "camera_backup": {
+          "status": "no",
+          "note": "No camera app"
+        },
+        "rclone": {
+          "status": "yes",
+          "note": "rclone via SFTP or WebDAV"
+        },
+        "webdav": {
+          "status": "yes",
+          "note": "Native WebDAV"
+        },
+        "e2ee": {
+          "status": "no",
+          "note": "Encrypt client-side yourself"
+        },
+        "mobile_apps": {
+          "status": "no",
+          "note": "No first-party app"
+        },
+        "file_versioning": {
+          "status": "partial",
+          "note": "Snapshots, not per-file versions"
+        }
+      },
+      "bandwidth": "Unlimited",
+      "file_limit": "None",
+      "icon": "icons/hetzner-storage-box.png",
+      "pricing": {
+        "1tb": "3.20",
+        "5tb": "10.90",
+        "10tb": "20.80",
+        "20tb": "40.60"
+      },
+      "pricing_note": "Prices exclude VAT."
+    },
+    {
+      "id": "wasabi",
+      "name": "Wasabi",
+      "url": "https://wasabi.com",
+      "hq": "United States",
+      "region": "US",
+      "free_storage": "None",
+      "summary": "S3-compatible object storage with no egress fees, but a 1 TB minimum charge and 90-day minimum retention.",
+      "features": {
+        "sync_app": {
+          "status": "partial",
+          "note": "Via rclone / third-party tools"
+        },
+        "lifetime_deals": {
+          "status": "no",
+          "note": "Pay as you go"
+        },
+        "camera_backup": {
+          "status": "no",
+          "note": "Not a consumer gallery app"
+        },
+        "rclone": {
+          "status": "yes",
+          "note": "Native S3 rclone support"
+        },
+        "webdav": {
+          "status": "no",
+          "note": "S3 API instead"
+        },
+        "e2ee": {
+          "status": "no",
+          "note": "Encrypt client-side yourself"
+        },
+        "mobile_apps": {
+          "status": "no",
+          "note": "No first-party files app"
+        },
+        "file_versioning": {
+          "status": "yes",
+          "note": "Object versioning"
+        }
+      },
+      "bandwidth": "No egress fees*",
+      "file_limit": "5 TB",
+      "icon": "icons/wasabi.png",
+      "pricing": {
+        "1tb": "$7.99",
+        "2tb": "$15.98",
+        "10tb": "$79.90"
+      },
+      "pricing_note": "Pay as you go, per TB stored; 1 TB minimum charge."
     }
   ]
 }

@@ -61,7 +61,9 @@ const state = {
   strictYes: false,
   freeTierOnly: false,
   hideNotRecommended: false,
+  showUnavailableSizes: false,
   showPricing: false,
+  currency: "ORIGINAL",
   sort: "name-asc",
   view: "browse",
   shortlist: new Set(),
@@ -218,6 +220,142 @@ function formatPriceDisplay(raw) {
   return text;
 }
 
+/* ——— Currency ———
+ * Each price keeps its provider's own currency in providers.json:
+ * plain numbers or "€" are EUR, "$" is USD, "CHF"/"NOK"/"£" are what they say.
+ * We convert to the selected currency for display and to EUR for sorting.
+ */
+const CURRENCIES = {
+  EUR: { symbol: "€" },
+  USD: { symbol: "$" },
+  CAD: { symbol: "CA$" },
+  AUD: { symbol: "A$" },
+};
+
+const RATES_CACHE_KEY = "cloud-comparison:rates:v1";
+const RATES_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+
+/** Units per 1 EUR. Seeded from providers.json, then replaced by live ECB rates. */
+const fx = { rates: { EUR: 1 }, date: null, live: false };
+
+function parsePrice(raw) {
+  if (raw == null) return null;
+  let text = String(raw).trim();
+  if (!text) return null;
+  const approx = text.startsWith("~");
+  if (approx) text = text.slice(1).trim();
+
+  let currency = "EUR";
+  if (/chf/i.test(text)) currency = "CHF";
+  else if (/nok|\bkr\b/i.test(text)) currency = "NOK";
+  else if (/ca\$|cad/i.test(text)) currency = "CAD";
+  else if (/a\$|aud/i.test(text)) currency = "AUD";
+  else if (/\$|usd/i.test(text)) currency = "USD";
+  else if (/£|gbp/i.test(text)) currency = "GBP";
+
+  const match = text.replace(/,(\d{2})\b/, ".$1").match(/(\d+(?:\.\d+)?)/);
+  if (!match) return null;
+  return { amount: Number(match[1]), currency, approx };
+}
+
+function convertAmount(amount, from, to) {
+  const fromRate = fx.rates[from];
+  const toRate = fx.rates[to];
+  if (!fromRate || !toRate) return null;
+  return (amount / fromRate) * toRate;
+}
+
+function moneyLabel(amount, currency) {
+  const known = CURRENCIES[currency];
+  const value = amount.toFixed(2);
+  if (known) return `${known.symbol}${value}`;
+  if (currency === "GBP") return `£${value}`;
+  return `${currency} ${value}`;
+}
+
+/** Display text plus a tooltip naming the original price when we converted it. */
+function priceView(raw) {
+  if (state.currency === "ORIGINAL") return { text: formatPriceDisplay(raw), tip: "" };
+  const parsed = parsePrice(raw);
+  if (!parsed) return { text: formatPriceDisplay(raw), tip: "" };
+  const target = state.currency;
+  const converted = convertAmount(parsed.amount, parsed.currency, target);
+  if (converted == null) return { text: formatPriceDisplay(raw), tip: "" };
+
+  const isConverted = parsed.currency !== target;
+  const approx = parsed.approx || isConverted;
+  const text = `${approx ? "~" : ""}${moneyLabel(converted, target)}`;
+  if (!isConverted) return { text, tip: "" };
+
+  const original = `${parsed.approx ? "~" : ""}${moneyLabel(parsed.amount, parsed.currency)}`;
+  const source = fx.live ? "live ECB rate" : "saved ECB rate";
+  const tip = `Provider price: ${original} (${parsed.currency}). Converted with the ${source}${
+    fx.date ? ` from ${fx.date}` : ""
+  }.`;
+  return { text, tip };
+}
+
+function priceHtml(raw) {
+  const { text, tip } = priceView(raw);
+  if (!tip) return `<span class="value">${escapeHtml(text)}</span>`;
+  return `<span class="value has-tip" tabindex="0" data-tip="${escapeHtml(tip)}">${escapeHtml(text)}</span>`;
+}
+
+/** Sort key in EUR so $5 and €5 aren't treated as equal. */
+function priceSortValue(raw) {
+  const parsed = parsePrice(raw);
+  if (parsed) {
+    const eur = convertAmount(parsed.amount, parsed.currency, "EUR");
+    if (eur != null) return eur;
+  }
+  return parsePriceSortValue(raw);
+}
+
+function seedRates() {
+  const saved = state.data?.meta?.currency;
+  if (saved?.rates) {
+    fx.rates = { ...saved.rates, EUR: 1 };
+    fx.date = saved.ratesDate || null;
+  }
+  try {
+    const cached = JSON.parse(localStorage.getItem(RATES_CACHE_KEY));
+    if (cached?.rates && Date.now() - cached.fetchedAt < RATES_MAX_AGE_MS) {
+      fx.rates = { ...fx.rates, ...cached.rates, EUR: 1 };
+      fx.date = cached.date;
+      fx.live = true;
+      return true;
+    }
+  } catch {
+    // No usable cache; the saved rates still work.
+  }
+  return false;
+}
+
+/** Fetch today's ECB rates; on any failure the saved rates stay in use. */
+async function loadLiveRates() {
+  const symbols = ["USD", "CAD", "AUD", "CHF", "NOK", "GBP"].join(",");
+  try {
+    const response = await fetch(`https://api.frankfurter.dev/v1/latest?base=EUR&symbols=${symbols}`);
+    if (!response.ok) return;
+    const data = await response.json();
+    if (!data?.rates) return;
+    fx.rates = { ...fx.rates, ...data.rates, EUR: 1 };
+    fx.date = data.date || fx.date;
+    fx.live = true;
+    try {
+      localStorage.setItem(
+        RATES_CACHE_KEY,
+        JSON.stringify({ rates: data.rates, date: fx.date, fetchedAt: Date.now() })
+      );
+    } catch {
+      // Storage unavailable; we'll just fetch again next visit.
+    }
+    if (state.showPricing || isPriceSort()) render();
+  } catch {
+    // Offline or blocked: keep the saved rates.
+  }
+}
+
 function normalizePricingKey(key) {
   return String(key).trim().toLowerCase().replace(/\s+/g, "");
 }
@@ -251,7 +389,7 @@ function getPricingValue(provider, tierId) {
 }
 
 function priceForTier(provider, tierId) {
-  return parsePriceSortValue(getPricingValue(provider, tierId));
+  return priceSortValue(getPricingValue(provider, tierId));
 }
 
 function isPriceSort(sortValue = state.sort) {
@@ -357,6 +495,68 @@ function getFilteredProviders() {
   return list;
 }
 
+function reportLink(provider, className = "report-link") {
+  return `<button type="button" class="${className}" data-action="report" data-id="${escapeHtml(provider.id)}">Report wrong info</button>`;
+}
+
+/* ——— "Report wrong info" form → POST /api/reports (see functions/api/reports.js) ——— */
+function openReportDialog(providerId) {
+  const dialog = $("report-dialog");
+  const form = $("report-form");
+  const select = form.elements.provider;
+  if (select.options.length === 0) {
+    const names = state.data.providers.map((p) => p.name).sort((a, b) => a.localeCompare(b));
+    select.innerHTML = `<option value="">Choose a provider…</option>${names
+      .map((name) => `<option>${escapeHtml(name)}</option>`)
+      .join("")}`;
+  }
+  form.reset();
+  setReportStatus("");
+  form.querySelector('[type="submit"]').disabled = false;
+  const provider = state.data.providers.find((p) => p.id === providerId);
+  select.value = provider ? provider.name : "";
+
+  if ($("drawer").open) $("drawer").close();
+  dialog.showModal();
+  (provider ? form.elements.correct : select).focus();
+}
+
+function setReportStatus(message, kind = "") {
+  const status = $("report-form").querySelector(".form-status");
+  status.textContent = message;
+  status.dataset.kind = kind;
+}
+
+async function submitReport(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = Object.fromEntries(new FormData(form));
+  if (!data.provider || !data.correct.trim()) {
+    setReportStatus("Please pick a provider and say what it should be.", "error");
+    return;
+  }
+
+  const button = form.querySelector('[type="submit"]');
+  button.disabled = true;
+  setReportStatus("Sending…");
+  try {
+    const apiBase = String(state.data.meta.apiBase || "").replace(/[/]$/, "");
+    if (!apiBase) throw new Error("Reporting isn't set up yet.");
+    const response = await fetch(`${apiBase}/api/reports`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || "Couldn't send the report.");
+    setReportStatus("Thanks! Your report was sent.", "ok");
+    setTimeout(() => $("report-dialog").close(), 1600);
+  } catch (error) {
+    setReportStatus(`${error.message} Please try again later.`, "error");
+    button.disabled = false;
+  }
+}
+
 function maxCompare() {
   return state.data?.meta?.maxCompare ?? 8;
 }
@@ -426,7 +626,7 @@ function importantNote(provider, { open = false } = {}) {
     <details class="provider-note" ${open ? "open" : ""}>
       <summary class="provider-note-summary has-tip" tabindex="0" data-tip="${escapeHtml(tip)}">
         <span class="provider-note-label">${escapeHtml(label)}</span>
-        <span class="provider-note-hint">Hover or expand</span>
+        <span class="provider-note-hint">tap to read</span>
       </summary>
       <div class="provider-note-body">${formatRichNote(provider.important_note)}</div>
     </details>
@@ -448,17 +648,13 @@ function providerCell(provider, { compact = false } = {}) {
         <span class="provider-name">
           <span class="provider-name-text">${escapeHtml(provider.name)}</span>
         </span>
-        <span class="provider-sub">${escapeHtml(provider.region)} · ${escapeHtml(provider.hq)}</span>
-        ${speedWarning(provider)}
-        ${importantNote(provider)}
+        <span class="provider-sub">${escapeHtml(provider.hq)}</span>
+        ${badge}
       </div>
       ${
         compact
-          ? badge
-            ? `<div class="provider-aside">${badge}</div>`
-            : ""
+          ? ""
           : `<div class="provider-aside">
-              ${badge}
               <div class="row-actions">
                 <button
                   type="button"
@@ -479,6 +675,11 @@ function providerCell(provider, { compact = false } = {}) {
                 >${UI_ICONS.info}</button>
               </div>
             </div>`
+      }
+      ${
+        provider.speed_warning || provider.important_note
+          ? `<div class="provider-extras">${speedWarning(provider)}${importantNote(provider)}</div>`
+          : ""
       }
     </div>
   `;
@@ -509,7 +710,7 @@ function tipLabel(text, tip) {
 }
 
 function bandwidthLabel() {
-  return tipLabel("Band.", BANDWIDTH_LABEL_TIP);
+  return tipLabel("Traffic", BANDWIDTH_LABEL_TIP);
 }
 
 function fileLimitLabel() {
@@ -546,10 +747,14 @@ function limitsCell(provider) {
 
 const DEFAULT_PRICING_TIERS = ["1tb"];
 
-function pricingTiers() {
+/**
+ * Tiers offered across the given providers (all providers by default).
+ * Pass `withDefaults: false` to get only sizes those providers actually sell.
+ */
+function pricingTiers(providers = state.data?.providers ?? [], { withDefaults = true } = {}) {
   const byGb = new Map();
 
-  for (const key of DEFAULT_PRICING_TIERS) {
+  for (const key of withDefaults ? DEFAULT_PRICING_TIERS : []) {
     const parsed = parsePricingKey(key);
     if (!parsed) continue;
     byGb.set(parsed.gb, {
@@ -559,10 +764,10 @@ function pricingTiers() {
     });
   }
 
-  for (const provider of state.data?.providers ?? []) {
-    for (const key of Object.keys(provider.pricing || {})) {
+  for (const provider of providers) {
+    for (const [key, value] of Object.entries(provider.pricing || {})) {
       const parsed = parsePricingKey(key);
-      if (!parsed) continue;
+      if (!parsed || value == null || String(value).trim() === "") continue;
       if (!byGb.has(parsed.gb)) {
         byGb.set(parsed.gb, {
           id: parsed.id,
@@ -596,17 +801,22 @@ function enablePricingView() {
 }
 
 function pricingCell(provider) {
-  const tiers = pricingTiers();
+  const tiers = state.showUnavailableSizes
+    ? pricingTiers()
+    : pricingTiers([provider], { withDefaults: false });
+  // Optional free-text caveat from providers.json, e.g. "Billed yearly only".
+  const note = provider.pricing_note
+    ? `<p class="pricing-note">${escapeHtml(provider.pricing_note)}</p>`
+    : "";
   if (!tiers.length) {
-    return `<div class="limits-cell pricing-cell"><span class="value">—</span></div>`;
+    return `<div class="limits-cell pricing-cell">${note || `<span class="value">—</span>`}</div>`;
   }
   const rows = tiers
     .map((tier) => {
-      const value = formatPriceDisplay(getPricingValue(provider, tier.id));
       return `
         <div class="limit-row">
           <span class="label">${escapeHtml(tier.label)}</span>
-          <span class="value">${escapeHtml(value)}</span>
+          ${priceHtml(getPricingValue(provider, tier.id))}
         </div>
       `;
     })
@@ -615,6 +825,7 @@ function pricingCell(provider) {
   return `
     <div class="limits-cell pricing-cell">
       ${rows}
+      ${note}
     </div>
   `;
 }
@@ -742,10 +953,12 @@ function renderBrowseTable(providers) {
   thead.innerHTML = `
     <tr>
       <th scope="col" class="col-provider">Provider</th>
-      <th scope="col" class="col-limits">Free / Limits</th>
+      <th scope="col" class="col-limits">Free &amp; limits</th>
       ${
         state.showPricing
-          ? `<th scope="col" class="col-pricing">Pricing /mo</th>`
+          ? `<th scope="col" class="col-pricing">Price / month${
+              state.currency === "ORIGINAL" ? "" : ` · ${escapeHtml(state.currency)}`
+            }</th>`
           : ""
       }
       ${features
@@ -761,7 +974,7 @@ function renderBrowseTable(providers) {
   `;
 
   tbody.innerHTML = providers
-    .map((provider) => {
+    .map((provider, index) => {
       const cells = features
         .map((feature) => {
           const status = getStatus(provider, feature.id);
@@ -776,7 +989,7 @@ function renderBrowseTable(providers) {
           provider.not_recommended ? "is-not-recommended" : "",
         ]
           .filter(Boolean)
-          .join(" ")}" data-provider-row="${provider.id}">
+          .join(" ")}" data-provider-row="${provider.id}" style="--i:${index}">
           <th scope="row" class="col-provider">${providerCell(provider)}</th>
           <td class="col-limits">${limitsCell(provider)}</td>
           ${state.showPricing ? `<td class="col-pricing">${pricingCell(provider)}</td>` : ""}
@@ -811,10 +1024,13 @@ function renderCompareTable() {
       ${selected
         .map(
           (provider) => `
-        <th scope="col" class="compare-provider">
-          <a class="provider-name-text" href="${escapeHtml(provider.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(provider.name)}</a>
-          ${notRecommendedBadge(provider)}
-          <div class="provider-sub">${escapeHtml(provider.region)}</div>
+        <th scope="col" class="compare-provider${provider.not_recommended ? " is-not-recommended" : ""}">
+          <div class="compare-provider-head">
+            <a class="provider-name-text" href="${escapeHtml(provider.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(provider.name)}</a>
+            ${notRecommendedBadge(provider)}
+            <div class="provider-sub">${escapeHtml(provider.region)}</div>
+            ${reportLink(provider)}
+          </div>
         </th>
       `
         )
@@ -858,14 +1074,20 @@ function renderCompareTable() {
   ];
 
   if (state.showPricing) {
-    for (const tier of pricingTiers()) {
+    const currencyNote = state.currency === "ORIGINAL" ? "" : ` (${state.currency})`;
+    if (state.showUnavailableSizes) {
+      for (const tier of pricingTiers(selected, { withDefaults: false })) {
+        limitRows.push({
+          label: `Price /mo · ${tier.label}${currencyNote}`,
+          description: "Month-to-month plan price for this capacity.",
+          render: (provider) => priceHtml(getPricingValue(provider, tier.id)),
+        });
+      }
+    } else {
       limitRows.push({
-        label: `Price /mo · ${tier.label}`,
-        description: "Approximate monthly plan price for this capacity.",
-        render: (provider) => {
-          const value = formatPriceDisplay(getPricingValue(provider, tier.id));
-          return `<span class="value">${escapeHtml(value)}</span>`;
-        },
+        label: `Plans / month${currencyNote}`,
+        description: "Sizes each provider sells, with month-to-month prices.",
+        render: (provider) => pricingCell(provider),
       });
     }
   }
@@ -930,7 +1152,7 @@ function renderShortlistBar() {
   chips.innerHTML = selected
     .map(
       (provider) => `
-      <span class="shortlist-chip">
+      <span class="shortlist-chip" data-chip="${provider.id}">
         ${escapeHtml(provider.name)}
         <button type="button" data-action="shortlist" data-id="${provider.id}" aria-label="Remove ${escapeHtml(provider.name)}">×</button>
       </span>
@@ -990,6 +1212,7 @@ function openDrawer(providerId) {
       <button type="button" class="btn-ghost" data-action="shortlist" data-id="${provider.id}">
         ${shortlisted ? "Remove from shortlist" : "Add to shortlist"}
       </button>
+      ${reportLink(provider, "btn-ghost report-btn")}
     </div>
     <div class="drawer-features">
       ${state.data.features
@@ -1051,6 +1274,116 @@ function render() {
   compare.hidden = !showCompare;
   browseBtn.classList.toggle("is-active", !showCompare);
   compareBtn.classList.toggle("is-active", showCompare);
+  // Compare only uses currency + pricing switches; CSS hides the filters.
+  document.querySelector(".app").classList.toggle("is-compare", showCompare);
+
+  animateChanges(providers);
+  saveState();
+}
+
+/** What the last render showed, so animations only play on real changes. */
+const lastRender = { listKey: null, view: null, shortlist: new Set() };
+
+function replayAnimation(el, className) {
+  if (!el) return;
+  el.classList.remove(className);
+  void el.offsetWidth; // restart the CSS animation
+  el.classList.add(className);
+}
+
+function animateChanges(providers) {
+  const firstRender = lastRender.listKey === null;
+  const listKey = `${state.showPricing}|${providers.map((p) => p.id).join(",")}`;
+  $("browse-table").classList.toggle("rows-enter", listKey !== lastRender.listKey);
+
+  if (!firstRender && state.view !== lastRender.view) {
+    replayAnimation($(state.view === "compare" ? "compare-view" : "browse-view"), "view-enter");
+  }
+
+  if (!firstRender) {
+    if (state.shortlist.size !== lastRender.shortlist.size) {
+      replayAnimation($("shortlist-count"), "bump");
+    }
+    for (const id of state.shortlist) {
+      if (lastRender.shortlist.has(id)) continue;
+      document.querySelector(`[data-chip="${id}"]`)?.classList.add("pop-in");
+      document
+        .querySelector(`[data-provider-row="${id}"] [data-action="shortlist"]`)
+        ?.classList.add("pop-in");
+    }
+  }
+
+  lastRender.listKey = listKey;
+  lastRender.view = state.view;
+  lastRender.shortlist = new Set(state.shortlist);
+}
+
+const STORAGE_KEY = "cloud-comparison:state:v1";
+
+/** Persist filters, sort, view and shortlist so they survive a reload. */
+function saveState() {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        requiredFeatures: [...state.requiredFeatures],
+        regions: [...state.regions],
+        strictYes: state.strictYes,
+        freeTierOnly: state.freeTierOnly,
+        hideNotRecommended: state.hideNotRecommended,
+        showUnavailableSizes: state.showUnavailableSizes,
+        showPricing: state.showPricing,
+        currency: state.currency,
+        sort: state.sort,
+        view: state.view,
+        shortlist: [...state.shortlist],
+      })
+    );
+  } catch {
+    // Storage blocked or full: the app still works, it just won't remember.
+  }
+}
+
+/** Restore saved state, dropping anything no longer in the dataset. */
+function restoreState() {
+  let saved;
+  try {
+    saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+  } catch {
+    return;
+  }
+  if (!saved || typeof saved !== "object") return;
+
+  const featureIds = new Set(state.data.features.map((f) => f.id));
+  const providerIds = new Set(state.data.providers.map((p) => p.id));
+  const regions = new Set(state.data.providers.map((p) => p.region));
+  const list = (value) => (Array.isArray(value) ? value : []);
+
+  state.requiredFeatures = new Set(list(saved.requiredFeatures).filter((id) => featureIds.has(id)));
+  state.regions = new Set(list(saved.regions).filter((r) => regions.has(r)));
+  state.shortlist = new Set(
+    list(saved.shortlist).filter((id) => providerIds.has(id)).slice(0, maxCompare())
+  );
+  state.strictYes = saved.strictYes === true;
+  state.freeTierOnly = saved.freeTierOnly === true;
+  state.hideNotRecommended = saved.hideNotRecommended === true;
+  state.showUnavailableSizes = saved.showUnavailableSizes === true;
+  state.showPricing = saved.showPricing === true;
+  if (saved.currency === "ORIGINAL" || CURRENCIES[saved.currency]) state.currency = saved.currency;
+  if (saved.view === "browse" || saved.view === "compare") state.view = saved.view;
+
+  const sortSelect = $("sort");
+  if ([...sortSelect.options].some((option) => option.value === saved.sort)) {
+    state.sort = saved.sort;
+  }
+
+  sortSelect.value = state.sort;
+  $("strict-yes").checked = state.strictYes;
+  $("free-tier-only").checked = state.freeTierOnly;
+  $("hide-not-recommended").checked = state.hideNotRecommended;
+  $("show-unavailable-sizes").checked = state.showUnavailableSizes;
+  $("show-pricing").checked = state.showPricing;
+  $("currency").value = state.currency;
 }
 
 function bindEvents() {
@@ -1062,6 +1395,12 @@ function bindEvents() {
   $("sort").addEventListener("change", (event) => {
     state.sort = event.target.value;
     if (isPriceSort(state.sort)) enablePricingView();
+    render();
+  });
+
+  $("currency").addEventListener("change", (event) => {
+    state.currency = event.target.value;
+    enablePricingView();
     render();
   });
 
@@ -1077,6 +1416,12 @@ function bindEvents() {
 
   $("hide-not-recommended").addEventListener("change", (event) => {
     state.hideNotRecommended = event.target.checked;
+    render();
+  });
+
+  $("show-unavailable-sizes").addEventListener("change", (event) => {
+    state.showUnavailableSizes = event.target.checked;
+    enablePricingView();
     render();
   });
 
@@ -1111,14 +1456,18 @@ function bindEvents() {
     state.strictYes = false;
     state.freeTierOnly = false;
     state.hideNotRecommended = false;
+    state.showUnavailableSizes = false;
     state.showPricing = false;
+    state.currency = "ORIGINAL";
     state.sort = "name-asc";
     $("search").value = "";
     $("sort").value = "name-asc";
     $("strict-yes").checked = false;
     $("free-tier-only").checked = false;
     $("hide-not-recommended").checked = false;
+    $("show-unavailable-sizes").checked = false;
     $("show-pricing").checked = false;
+    $("currency").value = "ORIGINAL";
     renderFilterControls();
     render();
   });
@@ -1149,6 +1498,14 @@ function bindEvents() {
     const { action, id } = actionEl.dataset;
     if (action === "shortlist") toggleShortlist(id);
     if (action === "details") openDrawer(id);
+    if (action === "report") openReportDialog(id);
+  });
+
+  $("report-form").addEventListener("submit", submitReport);
+  $("report-dialog").addEventListener("click", (event) => {
+    if (event.target === $("report-dialog") || event.target.closest("[data-close-dialog]")) {
+      $("report-dialog").close();
+    }
   });
 
   $("drawer").addEventListener("click", (event) => {
@@ -1157,7 +1514,8 @@ function bindEvents() {
 }
 
 async function loadData() {
-  const response = await fetch("./data/providers.json");
+  // no-cache: always revalidate, so data edits show up on a normal reload.
+  const response = await fetch("./data/providers.json", { cache: "no-cache" });
   if (!response.ok) {
     throw new Error(`Could not load providers.json (${response.status})`);
   }
@@ -1171,11 +1529,14 @@ async function init() {
       console.warn("UI is tuned for up to 50 providers; dataset is larger.");
     }
     renderMeta();
+    const ratesFresh = seedRates();
     fillPriceSortOptions();
+    restoreState();
     renderFilterControls();
     bindEvents();
     bindTooltipDelegation();
     render();
+    if (!ratesFresh) loadLiveRates();
   } catch (error) {
     $("browse-view").innerHTML = `<p class="error">${escapeHtml(error.message)}. Serve this folder over HTTP (for example <code>npx serve</code>) so the JSON can load.</p>`;
   }

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Reports · Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/styles.css?v=2026-10-27j" />
+    <style>
+      .admin {
+        width: min(960px, calc(100% - 2rem));
+        margin: 0 auto;
+        padding: 2.5rem 0 4rem;
+        display: grid;
+        gap: 1.25rem;
+      }
+      .admin-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      .admin-head h1 {
+        margin: 0;
+        font-family: var(--font-display);
+        font-size: 2rem;
+        letter-spacing: -0.02em;
+      }
+      .admin-head a {
+        color: var(--ink-dim);
+        font-size: 0.9rem;
+      }
+      .card {
+        padding: 1.25rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+      .login {
+        max-width: 380px;
+        display: grid;
+        gap: 0.9rem;
+      }
+      .tabs {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+      }
+      .tabs button {
+        padding: 0.45rem 0.9rem;
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--ink-soft);
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .tabs button.is-active {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: var(--paper);
+      }
+      .report {
+        display: grid;
+        gap: 0.6rem;
+      }
+      .report-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      .report-top h2 {
+        margin: 0;
+        font-size: 1.15rem;
+      }
+      .report-meta {
+        color: var(--ink-dim);
+        font-size: 0.82rem;
+      }
+      .badge {
+        display: inline-block;
+        padding: 0.1rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .badge.pending { background: var(--partial-bg); color: var(--partial); }
+      .badge.approved { background: var(--yes-bg); color: var(--yes); }
+      .badge.denied { background: var(--no-bg); color: var(--no); }
+      .change {
+        display: grid;
+        grid-template-columns: 7.5rem 1fr;
+        gap: 0.35rem 0.75rem;
+        font-size: 0.92rem;
+      }
+      .change dt {
+        color: var(--ink-dim);
+      }
+      .change dd {
+        margin: 0;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .btn-danger {
+        margin-left: auto;
+        color: var(--no);
+      }
+      .empty-state {
+        padding: 2rem;
+        text-align: center;
+        color: var(--ink-dim);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="admin">
+      <header class="admin-head">
+        <h1>Reports</h1>
+        <div>
+          <a href="../">← Back to the site</a>
+          <button type="button" class="linkish" id="logout" hidden>Log out</button>
+        </div>
+      </header>
+
+      <form id="login" class="card login">
+        <label class="field">
+          <span>Admin password</span>
+          <input type="password" name="password" autocomplete="current-password" required />
+        </label>
+        <p class="form-status" role="status"></p>
+        <div><button type="submit" class="btn-primary">Log in</button></div>
+      </form>
+
+      <section id="panel" hidden>
+        <div class="tabs" id="tabs"></div>
+        <div id="list" class="report-list" style="display: grid; gap: 1rem; margin-top: 1rem"></div>
+      </section>
+    </main>
+
+    <script type="module">
+      const KEY = "cloud-comparison:admin-password";
+      const $ = (id) => document.getElementById(id);
+      let password = sessionStorage.getItem(KEY) || "";
+      let reports = [];
+      let filter = "pending";
+      let apiBase = "";
+
+      // The API lives on a Cloudflare Worker; its URL is meta.apiBase in providers.json.
+      async function loadApiBase() {
+        const response = await fetch("../data/providers.json", { cache: "no-cache" });
+        const data = await response.json();
+        apiBase = String(data.meta?.apiBase || "").replace(/[/]$/, "");
+        if (!apiBase) throw new Error("meta.apiBase in providers.json is empty, so there's no API to talk to yet.");
+      }
+
+      async function api(path, options = {}) {
+        if (!apiBase) await loadApiBase();
+        const response = await fetch(`${apiBase}/api/admin/${path}`, {
+          ...options,
+          headers: { ...options.headers, authorization: `Bearer ${password}`, "content-type": "application/json" },
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw Object.assign(new Error(data.error || `Request failed (${response.status})`), { status: response.status });
+        return data;
+      }
+
+      function el(tag, props = {}, ...children) {
+        const node = Object.assign(document.createElement(tag), props);
+        for (const child of children) if (child != null) node.append(child);
+        return node;
+      }
+
+      function showLogin(message = "") {
+        $("login").hidden = false;
+        $("panel").hidden = true;
+        $("logout").hidden = true;
+        $("login").querySelector(".form-status").textContent = message;
+        $("login").querySelector(".form-status").dataset.kind = message ? "error" : "";
+      }
+
+      async function load() {
+        try {
+          ({ reports } = await api("reports"));
+          sessionStorage.setItem(KEY, password);
+          $("login").hidden = true;
+          $("panel").hidden = false;
+          $("logout").hidden = false;
+          render();
+        } catch (error) {
+          sessionStorage.removeItem(KEY);
+          showLogin(error.status === 401 ? "Wrong password." : error.message);
+        }
+      }
+
+      function render() {
+        const counts = { pending: 0, approved: 0, denied: 0 };
+        for (const r of reports) counts[r.status] = (counts[r.status] || 0) + 1;
+        const tabs = [["pending", "Pending"], ["approved", "Approved"], ["denied", "Denied"], ["all", "All"]];
+        $("tabs").replaceChildren(
+          ...tabs.map(([value, label]) =>
+            el("button", {
+              type: "button",
+              className: value === filter ? "is-active" : "",
+              textContent: `${label} (${value === "all" ? reports.length : counts[value]})`,
+              onclick: () => { filter = value; render(); },
+            })
+          )
+        );
+
+        const shown = reports.filter((r) => filter === "all" || r.status === filter);
+        if (!shown.length) {
+          $("list").replaceChildren(el("div", { className: "card empty-state", textContent: "Nothing here." }));
+          return;
+        }
+        $("list").replaceChildren(...shown.map(renderReport));
+      }
+
+      function row(label, value) {
+        return value ? [el("dt", { textContent: label }), el("dd", { textContent: value })] : [];
+      }
+
+      function renderReport(r) {
+        const source = /^https?:\/\//i.test(r.source || "")
+          ? el("a", { href: r.source, target: "_blank", rel: "noopener noreferrer nofollow", textContent: r.source })
+          : r.source || null;
+
+        const details = el("dl", { className: "change" },
+          ...row("What's wrong", r.field),
+          ...row("Site says", r.current),
+          ...row("Should say", r.correct),
+          ...(source ? [el("dt", { textContent: "Source" }), el("dd", {}, source)] : []),
+          ...row("Notes", r.notes),
+          ...row("Contact", r.contact),
+        );
+
+        const setStatus = (status) => async () => {
+          try {
+            const { report } = await api(`reports/${encodeURIComponent(r.id)}`, { method: "POST", body: JSON.stringify({ status }) });
+            Object.assign(r, report);
+            render();
+          } catch (error) { alert(error.message); }
+        };
+        const remove = async () => {
+          if (!confirm(`Delete this report about ${r.provider}?`)) return;
+          try {
+            await api(`reports/${encodeURIComponent(r.id)}`, { method: "DELETE" });
+            reports = reports.filter((x) => x.id !== r.id);
+            render();
+          } catch (error) { alert(error.message); }
+        };
+
+        const actions = el("div", { className: "actions" });
+        if (r.status !== "approved") actions.append(el("button", { type: "button", className: "btn-primary", textContent: "Approve", onclick: setStatus("approved") }));
+        if (r.status !== "denied") actions.append(el("button", { type: "button", className: "btn-ghost", textContent: "Deny", onclick: setStatus("denied") }));
+        if (r.status !== "pending") actions.append(el("button", { type: "button", className: "btn-ghost", textContent: "Back to pending", onclick: setStatus("pending") }));
+        actions.append(el("button", { type: "button", className: "btn-ghost btn-danger", textContent: "Delete", onclick: remove }));
+
+        return el("article", { className: "card report" },
+          el("div", { className: "report-top" },
+            el("h2", { textContent: r.provider }),
+            el("span", { className: `badge ${r.status}`, textContent: r.status }),
+          ),
+          el("div", { className: "report-meta", textContent: `Sent ${new Date(r.createdAt).toLocaleString()}${r.reviewedAt ? ` · reviewed ${new Date(r.reviewedAt).toLocaleString()}` : ""}` }),
+          details,
+          actions,
+        );
+      }
+
+      $("login").addEventListener("submit", (event) => {
+        event.preventDefault();
+        password = new FormData(event.currentTarget).get("password");
+        load();
+      });
+      $("logout").addEventListener("click", () => {
+        sessionStorage.removeItem(KEY);
+        password = "";
+        showLogin();
+      });
+
+      if (password) load(); else showLogin();
+    </script>
+  </body>
+</html>

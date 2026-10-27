@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="light dark" />
     <title>Cloud Storage Comparison</title>
     <meta
       name="description"
@@ -12,28 +12,45 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css" />
+    <!-- Bump ?v= after changing CSS/JS so browsers fetch the new files. -->
+    <link rel="stylesheet" href="css/styles.css?v=2026-10-27j" />
   </head>
   <body>
-    <div class="bg" aria-hidden="true">
-      <div class="bg-grid"></div>
-      <div class="bg-glow bg-glow-a"></div>
-      <div class="bg-glow bg-glow-b"></div>
+    <div class="sky" aria-hidden="true">
+      <span class="glow glow-a"></span>
+      <span class="glow glow-b"></span>
+      <span class="glow glow-c"></span>
+      <span class="cloud cloud-1"></span>
+      <span class="cloud cloud-2"></span>
+      <span class="cloud cloud-3"></span>
+      <span class="cloud cloud-4"></span>
+      <span class="cloud cloud-5"></span>
+      <span class="cloud cloud-6"></span>
     </div>
 
     <div class="app">
       <header class="topbar">
         <div class="brand-block">
-          <p class="brand">Cloud Storage Comparison</p>
+          <p class="kicker">Field notes on cloud storage</p>
+          <h1 class="brand">Cloud storage, <em>honestly</em> compared.</h1>
           <p id="tagline" class="tagline">
             Filter and compare cloud storage on the features that actually matter.
           </p>
         </div>
+      </header>
 
-        <div class="topbar-controls">
+      <div class="view-tabs" role="group" aria-label="View mode">
+        <button type="button" class="view-tab is-active" id="view-browse">Browse</button>
+        <button type="button" class="view-tab" id="view-compare">
+          Compare <span class="count" id="shortlist-count">0</span>
+        </button>
+      </div>
+
+      <section class="filter-rail" aria-label="Filters">
+        <div class="topbar-controls rail-toolbar">
           <label class="search-wrap">
             <span class="sr-only">Search</span>
             <input
@@ -56,12 +73,16 @@
             </select>
           </label>
 
-          <div class="segmented" role="group" aria-label="View mode">
-            <button type="button" class="seg is-active" id="view-browse">Browse</button>
-            <button type="button" class="seg" id="view-compare">
-              Compare <span class="count" id="shortlist-count">0</span>
-            </button>
-          </div>
+          <label class="control currency-control" title="Show prices in this currency">
+            <span>Currency</span>
+            <select id="currency">
+              <option value="ORIGINAL">As listed</option>
+              <option value="EUR">€ EUR</option>
+              <option value="USD">$ USD</option>
+              <option value="CAD">CA$ CAD</option>
+              <option value="AUD">A$ AUD</option>
+            </select>
+          </label>
 
           <label class="pricing-switch" title="Toggle the monthly pricing column">
             <input type="checkbox" id="show-pricing" />
@@ -73,10 +94,19 @@
               <small>Per month</small>
             </span>
           </label>
-        </div>
-      </header>
 
-      <section class="filter-rail" aria-label="Filters">
+          <label class="pricing-switch" title="List every plan size for every provider, with — where it isn't sold">
+            <input type="checkbox" id="show-unavailable-sizes" />
+            <span class="pricing-switch-track" aria-hidden="true">
+              <span class="pricing-switch-thumb"></span>
+            </span>
+            <span class="pricing-switch-copy">
+              <strong>All sizes</strong>
+              <small>Incl. unavailable</small>
+            </span>
+          </label>
+        </div>
+
         <div class="rail-head">
           <div>
             <h2>Filters</h2>
@@ -118,7 +148,7 @@
               <span>Hide not-recommended</span>
             </label>
             <p class="hint">
-              Shortlist up to <span id="max-compare">8</span>, then open Compare.
+              Tap <b>+</b> on up to <span id="max-compare">8</span> providers to line them up side by side.
             </p>
           </div>
         </div>
@@ -141,15 +171,15 @@
               <tbody></tbody>
             </table>
           </div>
-          <p id="empty-state" class="empty" hidden>No providers match these filters.</p>
+          <p id="empty-state" class="empty" hidden>Nothing matches all of that. Try dropping a filter or two.</p>
         </section>
 
         <section id="compare-view" class="panel" hidden aria-labelledby="compare-heading">
           <h2 id="compare-heading" class="sr-only">Compare shortlist</h2>
           <div id="compare-empty" class="empty">
             <p>
-              Shortlist 2–<span class="max-compare-label">8</span> providers from Browse, then
-              compare them side by side.
+              Nothing to compare yet. Tap <b>+</b> on 2–<span class="max-compare-label">8</span>
+              providers in Browse and they'll line up here, side by side.
             </p>
           </div>
           <div class="table-shell" id="compare-wrap" hidden>
@@ -166,8 +196,65 @@
       <div class="footer-inner">
         <p id="updated"></p>
         <p id="disclaimer"></p>
+        <p>
+          <button type="button" class="report-link" data-action="report">
+            Spotted something wrong or out of date? Report it
+          </button>
+        </p>
       </div>
     </footer>
+
+    <dialog id="report-dialog" class="modal" aria-labelledby="report-title">
+      <form id="report-form" class="modal-panel" novalidate>
+        <div class="modal-head">
+          <h2 id="report-title">Report wrong info</h2>
+          <button type="button" class="drawer-close" data-close-dialog>Close</button>
+        </div>
+        <p class="modal-intro">Spotted something wrong or out of date? Tell me and I'll check it.</p>
+
+        <label class="field">
+          <span>Provider</span>
+          <select name="provider" required></select>
+        </label>
+        <label class="field">
+          <span>What's wrong?</span>
+          <select name="field">
+            <option>Pricing or plan sizes</option>
+            <option>Free storage</option>
+            <option>A feature (sync, lifetime, camera, rclone, WebDAV, E2EE, mobile, versioning)</option>
+            <option>Bandwidth or file size limit</option>
+            <option>Summary or note text</option>
+            <option>Provider shut down or renamed</option>
+            <option>Something else</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>What the site says now</span>
+          <textarea name="current" rows="2" maxlength="1000" placeholder="e.g. WebDAV: No"></textarea>
+        </label>
+        <label class="field">
+          <span>What it should say <em>(required)</em></span>
+          <textarea name="correct" rows="3" maxlength="1000" required placeholder="e.g. WebDAV: Yes, on paid plans"></textarea>
+        </label>
+        <label class="field">
+          <span>Source link</span>
+          <input name="source" type="url" maxlength="500" placeholder="https://" />
+        </label>
+        <label class="field">
+          <span>Your email <em>(optional, only if you'd like a reply)</em></span>
+          <input name="contact" type="email" maxlength="200" />
+        </label>
+        <!-- Honeypot: hidden from people, bots fill it in. -->
+        <label class="hp" aria-hidden="true">
+          Website <input name="website" tabindex="-1" autocomplete="off" />
+        </label>
+
+        <p class="form-status" role="status" aria-live="polite"></p>
+        <div class="modal-actions">
+          <button type="submit" class="btn-primary">Send report</button>
+        </div>
+      </form>
+    </dialog>
 
     <dialog id="drawer" class="drawer">
       <form method="dialog" class="drawer-panel">
@@ -176,6 +263,6 @@
       </form>
     </dialog>
 
-    <script src="js/app.js" type="module"></script>
+    <script src="js/app.js?v=2026-10-27j" type="module"></script>
   </body>
 </html>
