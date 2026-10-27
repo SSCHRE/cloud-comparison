@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Cloud Storage Comparison",
-    "tagline": "What each provider actually supports, and where the catches are. Kept by hand and checked against the providers' own docs.",
+    "tagline": "What each provider actually supports, and where the catches are. Publicly maintanced (and monitored/verified by admins)",
     "updated": "2026-10-27",
     "disclaimer": "Feature support can change. Notes reflect publicly documented behavior as of the update date. Partial means limited, paid, local-only, or folder-scoped support. Pricing is the month-to-month price (not the yearly-billing discount) and omits promotions and lifetime deals. Converted prices (marked ~) use European Central Bank exchange rates; hover a price to see the provider's original.",
     "maxCompare": 8,
