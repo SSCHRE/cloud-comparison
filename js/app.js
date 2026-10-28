@@ -62,6 +62,9 @@ const state = {
   freeTierOnly: false,
   hideNotRecommended: false,
   showUnavailableSizes: false,
+  expandedPricing: new Set(), // provider ids showing all their plans
+  storageMin: null, // GB; null = no lower bound
+  storageMax: null, // GB; null = no upper bound
   showPricing: false,
   currency: "ORIGINAL",
   sort: "name-asc",
@@ -129,6 +132,7 @@ const UI_ICONS = {
   plus: `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 5a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H6a1 1 0 1 1 0-2h5V6a1 1 0 0 1 1-1z"/></svg>`,
   check: `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M9.8 16.6a1 1 0 0 1-.7-.3l-3.2-3.2a1 1 0 1 1 1.4-1.4l2.5 2.5 6.1-6.1a1 1 0 1 1 1.4 1.4l-6.8 6.8a1 1 0 0 1-.7.3z"/></svg>`,
   info: `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zm0 3.2a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3zM11 11h2v6h-2v-6z"/></svg>`,
+  flag: `<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M6 3a1 1 0 0 1 1 1v.4c1.6-.9 3.3-.9 5.1 0 1.5.7 2.9.8 4.5.1a1 1 0 0 1 1.4.9v8a1 1 0 0 1-.6.9c-2.1 1-4.1.9-6.1-.1-1.5-.7-2.8-.7-4.3.2V20a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1z"/></svg>`,
 };
 
 function initials(name) {
@@ -255,7 +259,8 @@ function parsePrice(raw) {
 
   const match = text.replace(/,(\d{2})\b/, ".$1").match(/(\d+(?:\.\d+)?)/);
   if (!match) return null;
-  return { amount: Number(match[1]), currency, approx };
+  const oneTime = /one-time|lifetime|once/i.test(text);
+  return { amount: Number(match[1]), currency, approx, oneTime };
 }
 
 function convertAmount(amount, from, to) {
@@ -284,10 +289,11 @@ function priceView(raw) {
 
   const isConverted = parsed.currency !== target;
   const approx = parsed.approx || isConverted;
-  const text = `${approx ? "~" : ""}${moneyLabel(converted, target)}`;
+  const suffix = parsed.oneTime ? " one-time" : "";
+  const text = `${approx ? "~" : ""}${moneyLabel(converted, target)}${suffix}`;
   if (!isConverted) return { text, tip: "" };
 
-  const original = `${parsed.approx ? "~" : ""}${moneyLabel(parsed.amount, parsed.currency)}`;
+  const original = `${parsed.approx ? "~" : ""}${moneyLabel(parsed.amount, parsed.currency)}${suffix}`;
   const source = fx.live ? "live ECB rate" : "saved ECB rate";
   const tip = `Provider price: ${original} (${parsed.currency}). Converted with the ${source}${
     fx.date ? ` from ${fx.date}` : ""
@@ -304,6 +310,8 @@ function priceHtml(raw) {
 /** Sort key in EUR so $5 and €5 aren't treated as equal. */
 function priceSortValue(raw) {
   const parsed = parsePrice(raw);
+  // One-time (lifetime) prices aren't monthly, so they sort after every monthly price.
+  if (parsed?.oneTime) return Number.MAX_SAFE_INTEGER;
   if (parsed) {
     const eur = convertAmount(parsed.amount, parsed.currency, "EUR");
     if (eur != null) return eur;
@@ -362,6 +370,9 @@ function normalizePricingKey(key) {
 
 function parsePricingKey(key) {
   const normalized = normalizePricingKey(key);
+  if (normalized === "unlimited") {
+    return { id: "unlimited", label: "Unlimited", gb: Number.POSITIVE_INFINITY, amount: Infinity, unit: "" };
+  }
   const match = normalized.match(/^(\d+(?:\.\d+)?)(gb|tb)$/);
   if (!match) return null;
   const amount = Number(match[1]);
@@ -436,6 +447,102 @@ function scoreProvider(provider) {
   return score;
 }
 
+/* ——— Storage range ———
+ * The slider steps over real plan sizes (paid tiers + free plans), so every stop matches something.
+ */
+function storageStops() {
+  const sizes = new Set(pricingTiers(undefined, { withDefaults: false }).map((tier) => tier.gb));
+  for (const provider of state.data.providers) {
+    const free = parseFreeGb(provider.free_storage);
+    if (free > 0 && free < 9999) sizes.add(free);
+  }
+  return [...sizes].sort((a, b) => a - b);
+}
+
+function formatGb(gb) {
+  if (gb === Number.POSITIVE_INFINITY) return "Unlimited";
+  if (gb >= 1024) return `${+(gb / 1024).toFixed(1)} TB`;
+  return `${+gb.toFixed(2)} GB`;
+}
+
+function storageRangeActive() {
+  return state.storageMin != null || state.storageMax != null;
+}
+
+function inStorageRange(gb) {
+  return (state.storageMin == null || gb >= state.storageMin) && (state.storageMax == null || gb <= state.storageMax);
+}
+
+/** Plan sizes a provider offers: priced tiers plus its free plan. */
+function providerSizes(provider) {
+  const sizes = pricingTiers([provider], { withDefaults: false }).map((tier) => tier.gb);
+  const free = parseFreeGb(provider.free_storage);
+  if (free > 0 && free < 9999) sizes.push(free);
+  return sizes;
+}
+
+function nearestStopIndex(stops, gb, fallback) {
+  if (gb == null) return fallback;
+  let best = fallback;
+  let bestDiff = Number.POSITIVE_INFINITY;
+  stops.forEach((stop, index) => {
+    const diff = Math.abs(stop - gb);
+    if (diff < bestDiff) {
+      best = index;
+      bestDiff = diff;
+    }
+  });
+  return best;
+}
+
+/** Sync the two thumbs, the filled track and the label with state. */
+function renderStorageRange() {
+  const stops = storageStops();
+  const minInput = $("storage-min");
+  const maxInput = $("storage-max");
+  const last = stops.length - 1;
+  minInput.max = maxInput.max = String(last);
+  minInput.value = String(nearestStopIndex(stops, state.storageMin, 0));
+  maxInput.value = String(nearestStopIndex(stops, state.storageMax, last));
+
+  const from = (Number(minInput.value) / last) * 100;
+  const to = (Number(maxInput.value) / last) * 100;
+  const track = $("storage-range");
+  track.style.setProperty("--from", `${from}%`);
+  track.style.setProperty("--to", `${to}%`);
+
+  $("storage-scale-min").textContent = formatGb(stops[0]);
+  $("storage-scale-max").textContent = formatGb(stops[last]);
+  const min = state.storageMin;
+  const max = state.storageMax;
+  $("storage-range-label").textContent =
+    min == null && max == null
+      ? "Any size"
+      : min != null && max != null
+        ? min === max
+          ? `Exactly ${formatGb(min)}`
+          : `${formatGb(min)} – ${formatGb(max)}`
+        : min != null
+          ? `${formatGb(min)} or more`
+          : `Up to ${formatGb(max)}`;
+}
+
+function onStorageInput(event) {
+  const stops = storageStops();
+  const last = stops.length - 1;
+  let lo = Number($("storage-min").value);
+  let hi = Number($("storage-max").value);
+  // Thumbs can't cross: push the other one along.
+  if (lo > hi) {
+    if (event.target.id === "storage-min") hi = lo;
+    else lo = hi;
+  }
+  state.storageMin = lo === 0 ? null : stops[lo];
+  state.storageMax = hi === last ? null : stops[hi];
+  enablePricingView();
+  render();
+}
+
 function getFilteredProviders() {
   const query = state.search.trim().toLowerCase();
 
@@ -467,6 +574,7 @@ function getFilteredProviders() {
     }
     if (state.freeTierOnly && !hasFreeTier(provider)) return false;
     if (state.hideNotRecommended && provider.not_recommended) return false;
+    if (storageRangeActive() && !providerSizes(provider).some(inStorageRange)) return false;
 
     for (const featureId of state.requiredFeatures) {
       if (!matchesFeatureRequirement(provider, featureId)) return false;
@@ -521,10 +629,41 @@ function openReportDialog(providerId) {
   (provider ? form.elements.correct : select).focus();
 }
 
-function setReportStatus(message, kind = "") {
-  const status = $("report-form").querySelector(".form-status");
+function setFormStatus(form, message, kind = "") {
+  const status = form.querySelector(".form-status");
   status.textContent = message;
   status.dataset.kind = kind;
+}
+
+function setReportStatus(message, kind = "") {
+  setFormStatus($("report-form"), message, kind);
+}
+
+/** POST a form to the report API (worker/index.js) and show the outcome in the form. */
+async function sendToApi(form, dialog, payload) {
+  const button = form.querySelector('[type="submit"]');
+  button.disabled = true;
+  setFormStatus(form, "Sending…");
+  try {
+    const apiBase = String(state.data.meta.apiBase || "").replace(/[/]$/, "");
+    if (!apiBase) throw new Error("Reporting isn't set up yet.");
+    const response = await fetch(`${apiBase}/api/reports`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw Object.assign(new Error(result.error || "Couldn't send it."), { status: response.status });
+    }
+    setFormStatus(form, "Thanks! It was sent.", "ok");
+    setTimeout(() => dialog.close(), 1600);
+  } catch (error) {
+    // Limit messages (429) already say what to do; other errors get a retry hint.
+    const message = error.status === 429 ? error.message : `${error.message} Please try again later.`;
+    setFormStatus(form, message, "error");
+    button.disabled = false;
+  }
 }
 
 async function submitReport(event) {
@@ -535,26 +674,29 @@ async function submitReport(event) {
     setReportStatus("Please pick a provider and say what it should be.", "error");
     return;
   }
+  await sendToApi(form, $("report-dialog"), { kind: "correction", ...data });
+}
 
-  const button = form.querySelector('[type="submit"]');
-  button.disabled = true;
-  setReportStatus("Sending…");
-  try {
-    const apiBase = String(state.data.meta.apiBase || "").replace(/[/]$/, "");
-    if (!apiBase) throw new Error("Reporting isn't set up yet.");
-    const response = await fetch(`${apiBase}/api/reports`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.error || "Couldn't send the report.");
-    setReportStatus("Thanks! Your report was sent.", "ok");
-    setTimeout(() => $("report-dialog").close(), 1600);
-  } catch (error) {
-    setReportStatus(`${error.message} Please try again later.`, "error");
-    button.disabled = false;
+/* ——— General feedback: provider suggestions, ideas, bugs ——— */
+function openFeedbackDialog() {
+  const form = $("feedback-form");
+  form.reset();
+  setFormStatus(form, "");
+  form.querySelector('[type="submit"]').disabled = false;
+  if ($("drawer").open) $("drawer").close();
+  $("feedback-dialog").showModal();
+  form.elements.message.focus();
+}
+
+async function submitFeedback(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = Object.fromEntries(new FormData(form));
+  if (!data.message.trim()) {
+    setFormStatus(form, "Please write a message.", "error");
+    return;
   }
+  await sendToApi(form, $("feedback-dialog"), { kind: "general", ...data });
 }
 
 function maxCompare() {
@@ -673,6 +815,14 @@ function providerCell(provider, { compact = false } = {}) {
                   title="Details"
                   aria-label="Details"
                 >${UI_ICONS.info}</button>
+                <button
+                  type="button"
+                  class="icon-action icon-report"
+                  data-action="report"
+                  data-id="${provider.id}"
+                  title="Report wrong info"
+                  aria-label="Report wrong info about ${escapeHtml(provider.name)}"
+                >${UI_ICONS.flag}</button>
               </div>
             </div>`
       }
@@ -800,18 +950,33 @@ function enablePricingView() {
   if (checkbox) checkbox.checked = true;
 }
 
+const PRICING_ROW_LIMIT = 6;
+
 function pricingCell(provider) {
-  const tiers = state.showUnavailableSizes
-    ? pricingTiers()
-    : pricingTiers([provider], { withDefaults: false });
+  const tiers = (
+    state.showUnavailableSizes ? pricingTiers() : pricingTiers([provider], { withDefaults: false })
+  ).filter((tier) => !storageRangeActive() || inStorageRange(tier.gb));
   // Optional free-text caveat from providers.json, e.g. "Billed yearly only".
   const note = provider.pricing_note
     ? `<p class="pricing-note">${escapeHtml(provider.pricing_note)}</p>`
     : "";
+  // The free plan comes from free_storage, so it isn't duplicated in pricing.
+  const freeGb = parseFreeGb(provider.free_storage);
+  const freeRow =
+    freeGb > 0 && freeGb < 9999 && (!storageRangeActive() || inStorageRange(freeGb))
+      ? `<div class="limit-row free-row">
+          <span class="label">${escapeHtml(provider.free_storage)}</span>
+          <span class="value">Free</span>
+        </div>`
+      : "";
   if (!tiers.length) {
-    return `<div class="limits-cell pricing-cell">${note || `<span class="value">—</span>`}</div>`;
+    return `<div class="limits-cell pricing-cell">${freeRow}${note || (freeRow ? "" : `<span class="value">—</span>`)}</div>`;
   }
-  const rows = tiers
+  // Long plan lists (FileLu has 15) show the first few with a "Show more" toggle.
+  // "All sizes" mode is exempt: there the full aligned grid is the point.
+  const expanded = state.showUnavailableSizes || state.expandedPricing.has(provider.id);
+  const visible = expanded ? tiers : tiers.slice(0, PRICING_ROW_LIMIT);
+  const rows = visible
     .map((tier) => {
       return `
         <div class="limit-row">
@@ -821,10 +986,18 @@ function pricingCell(provider) {
       `;
     })
     .join("");
+  const hiddenCount = tiers.length - visible.length;
+  const toggle =
+    !state.showUnavailableSizes && tiers.length > PRICING_ROW_LIMIT
+      ? `<button type="button" class="more-prices" data-action="more-prices" data-id="${escapeHtml(provider.id)}"
+          aria-expanded="${expanded}">${expanded ? "Show fewer" : `Show ${hiddenCount} more`}</button>`
+      : "";
 
   return `
     <div class="limits-cell pricing-cell">
+      ${freeRow}
       ${rows}
+      ${toggle}
       ${note}
     </div>
   `;
@@ -1076,7 +1249,9 @@ function renderCompareTable() {
   if (state.showPricing) {
     const currencyNote = state.currency === "ORIGINAL" ? "" : ` (${state.currency})`;
     if (state.showUnavailableSizes) {
-      for (const tier of pricingTiers(selected, { withDefaults: false })) {
+      for (const tier of pricingTiers(selected, { withDefaults: false }).filter(
+        (t) => !storageRangeActive() || inStorageRange(t.gb)
+      )) {
         limitRows.push({
           label: `Price /mo · ${tier.label}${currencyNote}`,
           description: "Month-to-month plan price for this capacity.",
@@ -1277,6 +1452,7 @@ function render() {
   // Compare only uses currency + pricing switches; CSS hides the filters.
   document.querySelector(".app").classList.toggle("is-compare", showCompare);
 
+  renderStorageRange();
   animateChanges(providers);
   saveState();
 }
@@ -1332,6 +1508,8 @@ function saveState() {
         freeTierOnly: state.freeTierOnly,
         hideNotRecommended: state.hideNotRecommended,
         showUnavailableSizes: state.showUnavailableSizes,
+        storageMin: state.storageMin,
+        storageMax: state.storageMax,
         showPricing: state.showPricing,
         currency: state.currency,
         sort: state.sort,
@@ -1368,6 +1546,9 @@ function restoreState() {
   state.freeTierOnly = saved.freeTierOnly === true;
   state.hideNotRecommended = saved.hideNotRecommended === true;
   state.showUnavailableSizes = saved.showUnavailableSizes === true;
+  const validGb = (value) => (typeof value === "number" && value > 0 ? value : null);
+  state.storageMin = validGb(saved.storageMin);
+  state.storageMax = validGb(saved.storageMax);
   state.showPricing = saved.showPricing === true;
   if (saved.currency === "ORIGINAL" || CURRENCIES[saved.currency]) state.currency = saved.currency;
   if (saved.view === "browse" || saved.view === "compare") state.view = saved.view;
@@ -1419,6 +1600,9 @@ function bindEvents() {
     render();
   });
 
+  $("storage-min").addEventListener("input", onStorageInput);
+  $("storage-max").addEventListener("input", onStorageInput);
+
   $("show-unavailable-sizes").addEventListener("change", (event) => {
     state.showUnavailableSizes = event.target.checked;
     enablePricingView();
@@ -1457,6 +1641,8 @@ function bindEvents() {
     state.freeTierOnly = false;
     state.hideNotRecommended = false;
     state.showUnavailableSizes = false;
+    state.storageMin = null;
+    state.storageMax = null;
     state.showPricing = false;
     state.currency = "ORIGINAL";
     state.sort = "name-asc";
@@ -1499,14 +1685,23 @@ function bindEvents() {
     if (action === "shortlist") toggleShortlist(id);
     if (action === "details") openDrawer(id);
     if (action === "report") openReportDialog(id);
+    if (action === "feedback") openFeedbackDialog();
+    if (action === "more-prices") {
+      if (state.expandedPricing.has(id)) state.expandedPricing.delete(id);
+      else state.expandedPricing.add(id);
+      render();
+      // The details panel renders its own copy of the cell; refresh it too.
+      if ($("drawer").open && state.drawerProviderId === id) openDrawer(id);
+    }
   });
 
   $("report-form").addEventListener("submit", submitReport);
-  $("report-dialog").addEventListener("click", (event) => {
-    if (event.target === $("report-dialog") || event.target.closest("[data-close-dialog]")) {
-      $("report-dialog").close();
-    }
-  });
+  $("feedback-form").addEventListener("submit", submitFeedback);
+  for (const dialog of [$("report-dialog"), $("feedback-dialog")]) {
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog || event.target.closest("[data-close-dialog]")) dialog.close();
+    });
+  }
 
   $("drawer").addEventListener("click", (event) => {
     if (event.target === $("drawer")) $("drawer").close();

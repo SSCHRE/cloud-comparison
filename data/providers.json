@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Cloud Storage Comparison",
-    "tagline": "What each provider actually supports, and where the catches are. Publicly maintanced (and monitored/verified by admins)",
+    "tagline": "What each provider actually supports, and where the catches are. Publicly maintained (and monitored/verified by admins)",
     "updated": "2026-10-27",
     "disclaimer": "Feature support can change. Notes reflect publicly documented behavior as of the update date. Partial means limited, paid, local-only, or folder-scoped support. Pricing is the month-to-month price (not the yearly-billing discount) and omits promotions and lifetime deals. Converted prices (marked ~) use European Central Bank exchange rates; hover a price to see the provider's original.",
     "maxCompare": 8,
@@ -118,7 +118,9 @@
       "icon": "icons/drime.png",
       "pricing": {
         "500gb": "2.99",
-        "2tb": "5.50"
+        "2tb": "5.50",
+        "3tb": "10.99",
+        "6tb": "19.99"
       }
     },
     {
@@ -323,8 +325,10 @@
       "icon": "icons/jottacloud.png",
       "pricing": {
         "1tb": "NOK 79",
-        "5tb": "NOK 159"
-      }
+        "5tb": "NOK 159",
+        "unlimited": "NOK 129"
+      },
+      "pricing_note": "Unlimited: upload speed is reduced after 5 TB."
     },
     {
       "id": "backblaze-b2",
@@ -476,11 +480,13 @@
       "file_limit": "None",
       "icon": "icons/icedrive.png",
       "pricing": {
+        "100gb": "2.79",
         "1tb": "7.49",
         "3tb": "11.99",
         "5tb": "18.99",
         "10tb": "32.99"
-      }
+      },
+      "pricing_note": "100 GB (Starter) is billed yearly only: €33.48/year."
     },
     {
       "id": "mega",
@@ -579,9 +585,11 @@
         }
       },
       "bandwidth": "Unlimited",
-      "file_limit": "Web: 375GB, App: 2TB",
+      "file_limit": "None",
       "icon": "icons/koofr.png",
       "pricing": {
+        "10gb": "0.50",
+        "25gb": "1.00",
         "100gb": "2.00",
         "250gb": "4.00",
         "500gb": "7.00",
@@ -687,8 +695,12 @@
       "bandwidth": "Unlimited",
       "file_limit": "None",
       "icon": "icons/felicloud.png",
-      "pricing": {},
-      "pricing_note": "Lifetime plans only: 100 GB $59 · 1 TB $249 · 2 TB $449 (one-time)."
+      "pricing": {
+        "100gb": "$59 one-time",
+        "1tb": "$249 one-time",
+        "2tb": "$449 one-time"
+      },
+      "pricing_note": "No subscriptions: these are one-time (lifetime) prices."
     },
     {
       "id": "internxt",
@@ -847,8 +859,23 @@
       "file_limit_tip": "No per-file limit on Premium; free accounts are capped at 10 GB per file.",
       "icon": "icons/filelu.ico",
       "pricing": {
-        "1tb": "$6.00"
-      }
+        "1tb": "$6.00",
+        "2tb": "$12.00",
+        "4tb": "$24.00",
+        "8tb": "$48.00",
+        "10tb": "$60.00",
+        "16tb": "$96.00",
+        "20tb": "$120.00",
+        "40tb": "$240.00",
+        "60tb": "$360.00",
+        "100tb": "$600.00",
+        "200tb": "$1200.00",
+        "300tb": "$1800.00",
+        "400tb": "$2400.00",
+        "500tb": "$3000.00",
+        "1000tb": "$6000.00"
+      },
+      "pricing_note": ""
     },
     {
       "id": "dropbox",
@@ -947,8 +974,10 @@
       "icon": "icons/onedrive.png",
       "pricing": {
         "100gb": "$1.99",
-        "1tb": "$9.99"
-      }
+        "1tb": "$9.99",
+        "6tb": "$12.99"
+      },
+      "pricing_note": "6 TB is the Family plan: 1 TB each for up to 6 people."
     },
     {
       "id": "icloud-drive",
@@ -1100,7 +1129,8 @@
       "icon": "icons/sync-com.png",
       "pricing": {
         "1tb": "$16.00",
-        "5tb": "$32.00"
+        "5tb": "$32.00",
+        "unlimited": "$54.00"
       }
     },
     {

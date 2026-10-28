@@ -9,6 +9,9 @@
       name="description"
       content="Filter and compare up to 50 cloud storage providers on sync, lifetime deals, camera backup, rclone, WebDAV, and E2EE."
     />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -16,7 +19,7 @@
       rel="stylesheet"
     />
     <!-- Bump ?v= after changing CSS/JS so browsers fetch the new files. -->
-    <link rel="stylesheet" href="css/styles.css?v=2026-10-27j" />
+    <link rel="stylesheet" href="css/styles.css?v=2026-10-28e" />
   </head>
   <body>
     <div class="sky" aria-hidden="true">
@@ -39,6 +42,13 @@
           <p id="tagline" class="tagline">
             Filter and compare cloud storage on the features that actually matter.
           </p>
+          <button type="button" class="hero-feedback" data-action="feedback">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path fill="currentColor" d="M12 2a7 7 0 0 0-4 12.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26A7 7 0 0 0 12 2zm2 11.6V16h-4v-2.4l-.43-.3a5 5 0 1 1 4.86 0zM9 20h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z"/>
+            </svg>
+            <span>Missing a provider or have an idea? <strong>Tell me</strong></span>
+            <span class="hero-feedback-arrow" aria-hidden="true">→</span>
+          </button>
         </div>
       </header>
 
@@ -134,6 +144,16 @@
             <div id="region-filters" class="toggle-row"></div>
           </fieldset>
 
+          <fieldset class="filter-group storage-filter">
+            <legend>Storage</legend>
+            <p class="field-hint" id="storage-range-label" aria-live="polite">Any size</p>
+            <div class="range-dual" id="storage-range">
+              <input type="range" id="storage-min" min="0" max="0" step="1" value="0" aria-label="Minimum storage" />
+              <input type="range" id="storage-max" min="0" max="0" step="1" value="0" aria-label="Maximum storage" />
+            </div>
+            <div class="range-scale"><span id="storage-scale-min"></span><span id="storage-scale-max"></span></div>
+          </fieldset>
+
           <div class="filter-group options">
             <label class="toggle">
               <input type="checkbox" id="strict-yes" />
@@ -200,6 +220,10 @@
           <button type="button" class="report-link" data-action="report">
             Spotted something wrong or out of date? Report it
           </button>
+          ·
+          <button type="button" class="report-link" data-action="feedback">
+            Suggest a provider or an idea
+          </button>
         </p>
       </div>
     </footer>
@@ -256,6 +280,48 @@
       </form>
     </dialog>
 
+    <dialog id="feedback-dialog" class="modal" aria-labelledby="feedback-title">
+      <form id="feedback-form" class="modal-panel" novalidate>
+        <div class="modal-head">
+          <h2 id="feedback-title">Suggestions &amp; feedback</h2>
+          <button type="button" class="drawer-close" data-close-dialog>Close</button>
+        </div>
+        <p class="modal-intro">Missing a provider, got an idea, or found something broken? I read everything.</p>
+
+        <label class="field">
+          <span>What's it about?</span>
+          <select name="category">
+            <option>Suggest a provider</option>
+            <option>Idea for the site</option>
+            <option>Something's broken</option>
+            <option>Other</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Your message <em>(required)</em></span>
+          <textarea name="message" rows="5" maxlength="2000" required
+            placeholder="e.g. Please add Seafile; it's self-hosted and has native WebDAV"></textarea>
+        </label>
+        <label class="field">
+          <span>Link <em>(optional)</em></span>
+          <input name="source" type="url" maxlength="500" placeholder="https://" />
+        </label>
+        <label class="field">
+          <span>Your email <em>(optional, only if you'd like a reply)</em></span>
+          <input name="contact" type="email" maxlength="200" />
+        </label>
+        <!-- Honeypot: hidden from people, bots fill it in. -->
+        <label class="hp" aria-hidden="true">
+          Website <input name="website" tabindex="-1" autocomplete="off" />
+        </label>
+
+        <p class="form-status" role="status" aria-live="polite"></p>
+        <div class="modal-actions">
+          <button type="submit" class="btn-primary">Send</button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog id="drawer" class="drawer">
       <form method="dialog" class="drawer-panel">
         <button type="submit" class="drawer-close" aria-label="Close">Close</button>
@@ -263,6 +329,6 @@
       </form>
     </dialog>
 
-    <script src="js/app.js?v=2026-10-27j" type="module"></script>
+    <script src="js/app.js?v=2026-10-28e" type="module"></script>
   </body>
 </html>

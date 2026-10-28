@@ -6,13 +6,16 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Reports · Admin</title>
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="../favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="../css/styles.css?v=2026-10-27j" />
+    <link rel="stylesheet" href="../css/styles.css?v=2026-10-28e" />
     <style>
       .admin {
         width: min(960px, calc(100% - 2rem));
@@ -101,6 +104,9 @@
       .badge.pending { background: var(--partial-bg); color: var(--partial); }
       .badge.approved { background: var(--yes-bg); color: var(--yes); }
       .badge.denied { background: var(--no-bg); color: var(--no); }
+      .badge.kind { background: var(--accent-wash); color: var(--accent); }
+      .kind-tabs { margin-top: 0.6rem; }
+      .kind-tabs button { font-size: 0.85rem; padding: 0.3rem 0.8rem; }
       .change {
         display: grid;
         grid-template-columns: 7.5rem 1fr;
@@ -152,6 +158,7 @@
 
       <section id="panel" hidden>
         <div class="tabs" id="tabs"></div>
+        <div class="tabs kind-tabs" id="kind-tabs"></div>
         <div id="list" class="report-list" style="display: grid; gap: 1rem; margin-top: 1rem"></div>
       </section>
     </main>
@@ -162,6 +169,8 @@
       let password = sessionStorage.getItem(KEY) || "";
       let reports = [];
       let filter = "pending";
+      let kindFilter = "all"; // all | correction | general
+      const kindOf = (r) => (r.kind === "general" ? "general" : "correction");
       let apiBase = "";
 
       // The API lives on a Cloudflare Worker; its URL is meta.apiBase in providers.json.
@@ -226,7 +235,23 @@
           )
         );
 
-        const shown = reports.filter((r) => filter === "all" || r.status === filter);
+        const byKind = { correction: 0, general: 0 };
+        for (const r of reports) if (filter === "all" || r.status === filter) byKind[kindOf(r)]++;
+        const kinds = [["all", "Everything", byKind.correction + byKind.general], ["correction", "Corrections", byKind.correction], ["general", "Suggestions & feedback", byKind.general]];
+        $("kind-tabs").replaceChildren(
+          ...kinds.map(([value, label, count]) =>
+            el("button", {
+              type: "button",
+              className: value === kindFilter ? "is-active" : "",
+              textContent: `${label} (${count})`,
+              onclick: () => { kindFilter = value; render(); },
+            })
+          )
+        );
+
+        const shown = reports.filter(
+          (r) => (filter === "all" || r.status === filter) && (kindFilter === "all" || kindOf(r) === kindFilter)
+        );
         if (!shown.length) {
           $("list").replaceChildren(el("div", { className: "card empty-state", textContent: "Nothing here." }));
           return;
@@ -243,14 +268,22 @@
           ? el("a", { href: r.source, target: "_blank", rel: "noopener noreferrer nofollow", textContent: r.source })
           : r.source || null;
 
-        const details = el("dl", { className: "change" },
-          ...row("What's wrong", r.field),
-          ...row("Site says", r.current),
-          ...row("Should say", r.correct),
-          ...(source ? [el("dt", { textContent: "Source" }), el("dd", {}, source)] : []),
-          ...row("Notes", r.notes),
-          ...row("Contact", r.contact),
-        );
+        const general = kindOf(r) === "general";
+        const details = general
+          ? el("dl", { className: "change" },
+              ...row("Message", r.message),
+              ...(source ? [el("dt", { textContent: "Link" }), el("dd", {}, source)] : []),
+              ...row("Contact", r.contact),
+            )
+          : el("dl", { className: "change" },
+              ...row("What's wrong", r.field),
+              ...row("Site says", r.current),
+              ...row("Should say", r.correct),
+              ...(source ? [el("dt", { textContent: "Source" }), el("dd", {}, source)] : []),
+              ...row("Notes", r.notes),
+              ...row("Contact", r.contact),
+            );
+        const title = general ? r.category || "Feedback" : r.provider;
 
         const setStatus = (status) => async () => {
           try {
@@ -260,7 +293,7 @@
           } catch (error) { alert(error.message); }
         };
         const remove = async () => {
-          if (!confirm(`Delete this report about ${r.provider}?`)) return;
+          if (!confirm(`Delete this ${general ? "message" : `report about ${r.provider}`}?`)) return;
           try {
             await api(`reports/${encodeURIComponent(r.id)}`, { method: "DELETE" });
             reports = reports.filter((x) => x.id !== r.id);
@@ -276,8 +309,12 @@
 
         return el("article", { className: "card report" },
           el("div", { className: "report-top" },
-            el("h2", { textContent: r.provider }),
-            el("span", { className: `badge ${r.status}`, textContent: r.status }),
+            el("h2", { textContent: title }),
+            el("div", {},
+              el("span", { className: "badge kind", textContent: general ? "suggestion" : "correction" }),
+              " ",
+              el("span", { className: `badge ${r.status}`, textContent: r.status }),
+            ),
           ),
           el("div", { className: "report-meta", textContent: `Sent ${new Date(r.createdAt).toLocaleString()}${r.reviewedAt ? ` · reviewed ${new Date(r.reviewedAt).toLocaleString()}` : ""}` }),
           details,

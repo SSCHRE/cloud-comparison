@@ -1,7 +1,9 @@
 /**
  * Report API for the cloud comparison site (the site itself stays on GitHub Pages).
  *
- *   POST   /api/reports              visitor reports wrong info (public)
+ *   POST   /api/reports              visitor sends a report (public). body.kind:
+ *                                       "correction" (default): wrong info about a provider
+ *                                       "general": suggestion, idea, bug report
  *   GET    /api/admin/reports        list all reports           (admin)
  *   POST   /api/admin/reports/<id>   { status: "pending" | "approved" | "denied" }  (admin)
  *   DELETE /api/admin/reports/<id>   (admin)
@@ -18,8 +20,15 @@ const MAX = {
   source: 500,
   notes: 2000,
   contact: 200,
+  category: 80,
+  message: 2000,
 };
-const RATE_LIMIT = 5; // reports per IP per hour
+// Anti-spam limits, per visitor (hashed IP). Counters expire on their own via KV TTLs.
+const HOURLY_LIMIT = 5; // any submissions per hour
+const CORRECTIONS_PER_PROVIDER = 1; // per provider per day
+const GENERAL_PER_DAY = 2; // suggestions / feedback per day
+const HOUR = 3600;
+const DAY = 86400;
 const STATUSES = new Set(["pending", "approved", "denied"]);
 
 function allowedOrigin(request, env) {
@@ -61,6 +70,26 @@ function isAdmin(request, env) {
   return given.length > 0 && safeEqual(given, env.ADMIN_PASSWORD);
 }
 
+/**
+ * One-way hash of the visitor's IP, so raw IP addresses are never stored.
+ * Salted with a secret (IP_SALT if set, otherwise the admin password) so the hashes
+ * can't be reversed by trying every possible IP.
+ */
+async function visitorId(request, env) {
+  const ip = request.headers.get("cf-connecting-ip") || "local";
+  const salt = env.IP_SALT || env.ADMIN_PASSWORD || "";
+  const bytes = new TextEncoder().encode(`${salt}:${ip}`);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)]
+    .slice(0, 12)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function readCount(env, key) {
+  return Number((await env.REPORTS.get(key)) || 0);
+}
+
 async function createReport(request, env, origin) {
   let body;
   try {
@@ -72,17 +101,21 @@ async function createReport(request, env, origin) {
   // Honeypot: real visitors never see or fill this field.
   if (body.website) return json({ ok: true }, 200, origin);
 
-  const report = {};
+  const kind = body.kind === "general" ? "general" : "correction";
+  const report = { kind };
   for (const [key, max] of Object.entries(MAX))
     report[key] = String(body[key] ?? "")
       .trim()
       .slice(0, max);
-  if (!report.provider || !report.correct) {
+  if (kind === "correction" && (!report.provider || !report.correct)) {
     return json(
       { error: "Please pick a provider and say what's wrong." },
       400,
       origin,
     );
+  }
+  if (kind === "general" && !report.message) {
+    return json({ error: "Please write a message." }, 400, origin);
   }
   if (report.source && !/^https?:\/\//i.test(report.source)) {
     return json(
@@ -94,17 +127,38 @@ async function createReport(request, env, origin) {
     );
   }
 
-  const ip = request.headers.get("cf-connecting-ip") || "local";
-  const rateKey = `rate:${ip}`;
-  const count = Number((await env.REPORTS.get(rateKey)) || 0);
-  if (count >= RATE_LIMIT) {
+  // Check every limit before storing anything.
+  const who = await visitorId(request, env);
+  const hourlyKey = `limit:hour:${who}`;
+  const kindKey =
+    kind === "correction"
+      ? `limit:provider:${who}:${report.provider.toLowerCase()}`
+      : `limit:general:${who}`;
+  const [hourly, kindCount] = await Promise.all([
+    readCount(env, hourlyKey),
+    readCount(env, kindKey),
+  ]);
+  if (hourly >= HOURLY_LIMIT) {
     return json(
-      { error: "Too many reports from you in the last hour." },
+      { error: "That's a lot of messages in a short time. Please wait an hour." },
       429,
       origin,
     );
   }
-  await env.REPORTS.put(rateKey, String(count + 1), { expirationTtl: 3600 });
+  if (kind === "correction" && kindCount >= CORRECTIONS_PER_PROVIDER) {
+    return json(
+      { error: `You've already reported ${report.provider} today. Thanks, I'll look into it!` },
+      429,
+      origin,
+    );
+  }
+  if (kind === "general" && kindCount >= GENERAL_PER_DAY) {
+    return json(
+      { error: `You've already sent ${GENERAL_PER_DAY} messages today. Thanks! Please try again tomorrow.` },
+      429,
+      origin,
+    );
+  }
 
   const id = `${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 8)}`;
   const record = {
@@ -114,6 +168,10 @@ async function createReport(request, env, origin) {
     ...report,
   };
   await env.REPORTS.put(`report:${id}`, JSON.stringify(record));
+  await Promise.all([
+    env.REPORTS.put(hourlyKey, String(hourly + 1), { expirationTtl: HOUR }),
+    env.REPORTS.put(kindKey, String(kindCount + 1), { expirationTtl: DAY }),
+  ]);
   return json({ ok: true, id }, 201, origin);
 }
 

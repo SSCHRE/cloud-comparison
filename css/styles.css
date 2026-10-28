@@ -334,6 +334,65 @@ a {
   text-decoration-color: currentColor;
 }
 
+/* Call-to-action under the tagline: suggest a provider / idea. */
+.hero-feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 1rem;
+  padding: 0.6rem 1.05rem 0.6rem 0.85rem;
+  border: 1.5px solid var(--accent-line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.92rem;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms var(--ease-out, ease);
+}
+
+.hero-feedback svg {
+  color: var(--accent);
+  flex: 0 0 auto;
+  transition: color 160ms ease;
+}
+
+.hero-feedback strong {
+  color: var(--accent);
+  transition: color 160ms ease;
+}
+
+.hero-feedback-arrow {
+  color: var(--accent);
+  transition: transform 160ms var(--ease-out, ease), color 160ms ease;
+}
+
+.hero-feedback:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  transform: translateY(-1px);
+}
+
+.hero-feedback:hover svg,
+.hero-feedback:hover strong,
+.hero-feedback:hover .hero-feedback-arrow {
+  color: var(--accent-ink);
+}
+
+.hero-feedback:hover .hero-feedback-arrow {
+  transform: translateX(3px);
+}
+
+.hero-feedback:active {
+  transform: scale(0.97);
+}
+
 .compare-provider .report-link {
   flex: 1 0 100%;
   color: var(--head-dim);
@@ -821,8 +880,109 @@ a {
 
 .rail-body {
   display: grid;
-  grid-template-columns: 1.6fr 1fr minmax(13rem, auto);
+  grid-template-columns: 1.5fr 1fr minmax(14rem, 1fr) minmax(13rem, auto);
   gap: 1.1rem 1.75rem;
+}
+
+/* ——— Storage range: two stacked range inputs sharing one track ——— */
+.range-dual {
+  --from: 0%;
+  --to: 100%;
+  position: relative;
+  height: 1.6rem;
+  margin: 0.2rem 0.55rem 0;
+}
+
+/* Track, with the selected span filled in the accent colour. */
+.range-dual::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 6px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  background: linear-gradient(
+    to right,
+    var(--line-strong) var(--from),
+    var(--accent) var(--from),
+    var(--accent) var(--to),
+    var(--line-strong) var(--to)
+  );
+}
+
+.range-dual input[type="range"] {
+  position: absolute;
+  inset: 0;
+  width: calc(100% + 1.1rem);
+  margin: 0 -0.55rem;
+  background: none;
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: none; /* only the thumbs are interactive, so both stay grabbable */
+}
+
+.range-dual input[type="range"]::-webkit-slider-runnable-track {
+  height: 1.6rem;
+  background: none;
+}
+
+.range-dual input[type="range"]::-moz-range-track {
+  background: none;
+}
+
+.range-dual input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.25rem;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  cursor: grab;
+  pointer-events: auto;
+  transition: transform 140ms var(--ease-out, ease);
+}
+
+.range-dual input[type="range"]::-moz-range-thumb {
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.range-dual input[type="range"]:active::-webkit-slider-thumb {
+  cursor: grabbing;
+  transform: scale(1.15);
+}
+
+.range-dual input[type="range"]:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.range-dual input[type="range"]:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.range-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.35rem;
+  color: var(--ink-dim);
+  font-size: 0.76rem;
+}
+
+#storage-range-label {
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .filter-group {
@@ -1132,15 +1292,15 @@ tbody th.col-provider {
   position: sticky;
   left: 0;
   z-index: 1;
-  min-width: 16rem;
-  width: 16rem;
+  min-width: 18.5rem;
+  width: 18.5rem;
   box-shadow: inset -1px 0 0 var(--line);
 }
 
 tbody td.col-limits,
 thead th.col-limits {
   position: sticky;
-  left: 16rem;
+  left: 18.5rem;
   z-index: 1;
   min-width: 12rem;
   width: 12.5rem;
@@ -1170,6 +1330,31 @@ tbody tr:nth-child(even) > td.col-pricing {
 
 .pricing-cell .limit-row {
   grid-template-columns: 3.6rem 1fr;
+}
+
+.pricing-cell .free-row .value {
+  color: var(--yes);
+  font-family: var(--font-body);
+  font-weight: 600;
+}
+
+.more-prices {
+  justify-self: start;
+  margin-top: 0.1rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--accent-line);
+  text-underline-offset: 0.2em;
+}
+
+.more-prices:hover {
+  text-decoration-color: currentColor;
 }
 
 .pricing-note {
@@ -1571,12 +1756,12 @@ tbody tr:last-child td {
 
 .row-actions {
   display: flex;
-  gap: 0.3rem;
+  gap: 0.25rem;
 }
 
 .icon-action {
-  width: 2rem;
-  height: 2rem;
+  width: 1.8rem;
+  height: 1.8rem;
   border-radius: 50%;
   border: 1px solid var(--line-strong);
   background: var(--surface);
@@ -1588,6 +1773,17 @@ tbody tr:last-child td {
 .icon-action:hover {
   border-color: var(--accent-line);
   color: var(--accent);
+}
+
+/* Report flag: quieter than + / i, turns red on hover. */
+.icon-action.icon-report {
+  color: var(--ink-dim);
+  border-color: var(--line);
+}
+
+.icon-action.icon-report:hover {
+  color: var(--no);
+  border-color: var(--no);
 }
 
 .icon-action.is-active {

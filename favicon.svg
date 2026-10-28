@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Same cloud as the animated background (css: .cloud mask), with a blue-to-green gradient. -->
+  <defs>
+    <!-- userSpaceOnUse so the gradient spans the whole cloud, not each puff separately. -->
+    <linearGradient id="leaf" gradientUnits="userSpaceOnUse" x1="14" y1="4" x2="108" y2="62">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="0.55" stop-color="#14b8a6"/>
+      <stop offset="1" stop-color="#22c55e"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#leaf)" transform="translate(-7 10.9) scale(0.64)">
+    <circle cx="34" cy="42" r="20"/>
+    <circle cx="62" cy="30" r="26"/>
+    <circle cx="90" cy="42" r="18"/>
+    <rect x="34" y="40" width="56" height="22" rx="4"/>
+  </g>
+</svg>
